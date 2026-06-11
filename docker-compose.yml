@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    container_name: haripool-postgres
+    environment:
+      POSTGRES_DB: haripool
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - haripool_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d haripool"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  haripool_pgdata:
