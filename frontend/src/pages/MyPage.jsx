@@ -42,28 +42,11 @@ export default function MyPage({ page, setPage }) {
         </Card>
 
         <Card className="p-6">
-          <p className="mb-3 text-sm font-black">학습 기록</p>
-          <h2 className="mb-5 text-3xl font-black">잔디와 통계</h2>
-          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <div className="rounded-md border border-ash p-5">
-              <p className="mb-4 font-black">나의 잔디밭</p>
-              <ActivityGrid />
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Stat label="누적 풀이" value="42문제" />
-              <Stat label="언어이해 정답률" value="79%" />
-              <Stat label="추리논증 정답률" value="84%" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
           <p className="mb-3 text-sm font-black">환경 설정</p>
           <h2 className="mb-5 text-3xl font-black">학습 설정</h2>
           <div className="grid gap-4 lg:grid-cols-3">
             <Stat label="문제 범위" value="전체 회차 랜덤" />
             <Stat label="타이머 설정" value="3분 제한" />
-            <Stat label="오답 복습" value="3일 뒤 자동 재노출" />
             <Stat label="취약 유형" value="추후 추가" className="opacity-50" />
             <Stat label="이번 주 요약" value="추후 추가" className="opacity-50" />
           </div>
