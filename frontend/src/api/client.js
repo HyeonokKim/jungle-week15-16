@@ -36,3 +36,7 @@ export function submitAttempt({ problemId, selectedIndex, reasoning }) {
     }),
   });
 }
+
+export function fetchProblemBoard(problemId) {
+  return request(`/problems/${problemId}/board?user_id=${DEV_USER_ID}`);
+}
