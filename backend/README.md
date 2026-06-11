@@ -42,6 +42,15 @@ uvicorn backend.app.main:app --reload
 
 기본 헬스 체크 엔드포인트는 `GET /health`다.
 
+현재 인증 전 개발 단계에서는 `user_id=1`을 기본 개발 사용자로 사용한다.
+
+```bash
+curl 'http://127.0.0.1:8000/daily?user_id=1'
+curl -X POST 'http://127.0.0.1:8000/attempts' \
+  -H 'Content-Type: application/json' \
+  -d '{"user_id":1,"problem_id":1,"selected_index":4,"reasoning":"선택 근거"}'
+```
+
 ## 6. 2026년 문제 데이터 적재
 
 2025년 정답표는 이미지 기반 PDF라 자동 정답 추출을 보류한다. 개발 초기 DB에는 정답 검증이 끝난 2026년 언어이해/추리논증만 적재한다.
