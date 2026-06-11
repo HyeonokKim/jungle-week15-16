@@ -34,7 +34,15 @@ alembic upgrade head
 
 현재 초기 마이그레이션은 `backend/alembic/versions/0001_create_initial_schema.py`에 있다.
 
-## 5. 2026년 문제 데이터 적재
+## 5. API 서버 실행
+
+```bash
+uvicorn backend.app.main:app --reload
+```
+
+기본 헬스 체크 엔드포인트는 `GET /health`다.
+
+## 6. 2026년 문제 데이터 적재
 
 2025년 정답표는 이미지 기반 PDF라 자동 정답 추출을 보류한다. 개발 초기 DB에는 정답 검증이 끝난 2026년 언어이해/추리논증만 적재한다.
 
