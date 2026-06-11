@@ -151,9 +151,11 @@ export default function DailyPage({ page, setPage }) {
               </div>
 
               {problem.passage && (
-                <div className="mb-5 rounded-md border border-pepper p-5">
-                  <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
-                  <p className="whitespace-pre-line leading-7">{problem.passage}</p>
+                <div className="mb-5 flex justify-center">
+                  <div className="w-fit max-w-full rounded-md border border-pepper p-5">
+                    <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
+                    <p className="whitespace-pre-line leading-7">{problem.passage}</p>
+                  </div>
                 </div>
               )}
 
