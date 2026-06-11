@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>하리풀 - 하루에 리트 1문제 풀기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              pepper: "#2b2b2b",
+              salt: "#ffffff",
+              ash: "#d4d4d4",
+              smoke: "#b3b3b3",
+              paper: "#f7f7f7",
+            },
+            boxShadow: {
+              soft: "0 18px 44px rgba(43,43,43,0.08)",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: #2b2b2b;
+        background: #d4d4d4;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+      }
+
+      .grid-paper {
+        background:
+          linear-gradient(rgba(179, 179, 179, 0.44) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(179, 179, 179, 0.44) 1px, transparent 1px),
+          #ffffff;
+        background-size: 18px 18px;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid #2b2b2b;
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useMemo, useState } = React;
+
+      const navItems = [
+        ["login", "로그인"],
+        ["daily", "오늘 문제"],
+        ["ranking", "풀이 현황"],
+        ["mypage", "마이 페이지"],
+      ];
+
+      const solvedRows = [
+        ["김현우", "2025학년도 추리논증 12번", "오늘 완료", "78%"],
+        ["이서연", "2025학년도 언어이해 8번", "풀이 중", "72%"],
+        ["박준호", "2025학년도 추리논증 12번", "오답 복습", "64%"],
+        ["최민지", "2025학년도 언어이해 8번", "오늘 완료", "81%"],
+      ];
+
+      const rankingCards = [
+        ["d", "ddiddi", "오늘 완료", "15일", "2025학년도 추리논증 12번", "42", "78%"],
+        ["k", "kkikki", "풀이 중", "9일", "2025학년도 언어이해 8번", "36", "72%"],
+        ["r", "rrirri", "오답 복습", "4일", "2025학년도 추리논증 12번", "28", "64%"],
+        ["p", "ppippi", "오늘 완료", "12일", "2025학년도 언어이해 8번", "39", "81%"],
+      ];
+
+      function Logo() {
+        return (
+          <div className="flex items-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-md bg-pepper text-lg font-black text-white">
+              H
+            </div>
+            <div>
+              <h1 className="text-2xl font-black leading-none">하리풀</h1>
+              <p className="mt-2 text-sm text-pepper">하루에 리트 1문제 풀기</p>
+            </div>
+          </div>
+        );
+      }
+
+      function Nav({ page, setPage }) {
+        return (
+          <nav className="flex flex-wrap items-center gap-3">
+            {navItems.map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setPage(id)}
+                className={`h-11 rounded-md border px-6 text-sm font-black ${
+                  page === id
+                    ? "border-pepper bg-pepper text-white"
+                    : "border-smoke bg-white text-pepper hover:bg-paper"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        );
+      }
+
+      function Shell({ page, setPage, label, children }) {
+        return (
+          <main className="min-h-screen bg-ash p-4">
+            <p className="mb-2 text-xs font-bold text-[#8f8f8f]">{label}</p>
+            <section className="grid-paper mx-auto min-h-[calc(100vh-3rem)] max-w-[1280px] p-10">
+              <div className="min-h-[880px] rounded-md border border-smoke bg-white shadow-soft">
+                <header className="flex flex-col gap-5 border-b border-ash px-8 py-8 md:flex-row md:items-center md:justify-between">
+                  <Logo />
+                  {page !== "login" && <Nav page={page} setPage={setPage} />}
+                </header>
+                {children}
+              </div>
+            </section>
+          </main>
+        );
+      }
+
+      function Card({ children, className = "" }) {
+        return <section className={`rounded-md border border-smoke bg-white ${className}`}>{children}</section>;
+      }
+
+      function Stat({ label, value, className = "" }) {
+        return (
+          <div className={`rounded-md border border-smoke bg-white px-4 py-3 ${className}`}>
+            <p className="text-xs font-medium text-[#666]">{label}</p>
+            <p className="mt-1 text-xl font-black">{value}</p>
+          </div>
+        );
+      }
+
+      function Avatar({ letter = "i", size = "h-20 w-20", text = "text-3xl" }) {
+        return (
+          <div className={`grid ${size} place-items-center rounded-full border-4 border-pepper bg-ash ${text} font-black`}>
+            {letter}
+          </div>
+        );
+      }
+
+      function LoginPage({ setPage }) {
+        return (
+          <Shell page="login" setPage={setPage} label="01 로그인">
+            <div className="grid min-h-[720px] place-items-center px-6 py-10">
+              <Card className="w-full max-w-[330px] border-pepper p-10">
+                <div className="mb-7 flex items-center gap-6">
+                  <div className="grid h-12 w-12 place-items-center rounded-md bg-pepper text-lg font-black text-white">
+                    H
+                  </div>
+                  <h2 className="text-2xl font-black">로그인</h2>
+                </div>
+
+                <label className="mb-5 block">
+                  <span className="mb-2 block text-xs font-black">아이디</span>
+                  <input
+                    defaultValue="hyunwoo@haripool.kr"
+                    className="h-12 w-full rounded-md border border-smoke px-4 text-sm"
+                  />
+                </label>
+
+                <label className="mb-6 block">
+                  <span className="mb-2 block text-xs font-black">비밀번호</span>
+                  <input
+                    type="password"
+                    defaultValue="password"
+                    className="h-12 w-full rounded-md border border-smoke px-4 text-sm"
+                  />
+                </label>
+
+                <button
+                  onClick={() => setPage("daily")}
+                  className="h-12 w-full rounded-md bg-pepper text-sm font-black text-white hover:bg-[#444]"
+                >
+                  로그인하기
+                </button>
+
+                <div className="mt-4 flex items-center justify-around text-sm font-black">
+                  <button>계정 만들기</button>
+                  <button>비밀번호 찾기</button>
+                </div>
+              </Card>
+            </div>
+          </Shell>
+        );
+      }
+
+      function ActivityGrid() {
+        const cells = useMemo(() => Array.from({ length: 84 }, (_, i) => i), []);
+        return (
+          <div className="grid max-w-[250px] grid-cols-[repeat(14,minmax(0,1fr))] gap-1.5">
+            {cells.map((i) => (
+              <div
+                key={i}
+                className={`h-3 w-3 rounded-[3px] ${
+                  i % 13 === 0 || i % 17 === 0 ? "bg-pepper" : i % 5 === 0 ? "bg-smoke" : "bg-ash"
+                }`}
+              />
+            ))}
+          </div>
+        );
+      }
+
+      function DailyPage({ page, setPage }) {
+        return (
+          <Shell page={page} setPage={setPage} label="02 오늘 문제">
+            <div className="grid gap-7 px-7 py-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+              <aside className="space-y-5">
+                <Card className="p-7">
+                  <div className="mb-8 flex items-center gap-5">
+                    <Avatar />
+                    <div>
+                      <p className="text-xl font-black">ifuril</p>
+                      <p className="text-sm text-[#666]">level 4</p>
+                      <div className="mt-4 h-2 w-32 rounded-full bg-ash">
+                        <div className="h-2 w-24 rounded-full bg-pepper" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mb-7 flex items-center justify-between">
+                    <h2 className="text-lg font-black">나의 잔디밭</h2>
+                    <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">현재 15일 연속 문제 풀이 중!</span>
+                  </div>
+                  <ActivityGrid />
+                </Card>
+
+                <Card className="p-7">
+                  <h2 className="mb-7 text-lg font-black">날짜별 푼 문제</h2>
+                  {[
+                    ["2026.06.09", "[정답] 2025학년도 추리논증 12번 [해설보기]", "[진행] 2025학년도 언어이해 8번 [이어풀기]"],
+                    ["2026.06.08", "[정답] 2025학년도 추리논증 12번 [해설보기]", "[오답] 2024학년도 추리논증 9번 [오답노트]"],
+                    ["2026.06.07", "[정답] 2025학년도 추리논증 12번 [해설보기]", "[오답] 2024학년도 추리논증 9번 [오답노트]"],
+                  ].map(([date, first, second], index) => (
+                    <div key={date} className="mb-7 grid grid-cols-[18px_1fr] gap-3 last:mb-0">
+                      <span
+                        className={`mt-1 h-3 w-3 rounded-full ${index === 0 ? "bg-pepper" : "border border-smoke bg-white"}`}
+                      />
+                      <div>
+                        <p className="mb-3 text-xl font-black">{date}</p>
+                        <p className="mb-2 text-xs font-black">{first}</p>
+                        <p className="text-xs font-black">{second}</p>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              </aside>
+
+              <Card className="border-pepper p-7">
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="mb-3 text-sm font-black">오늘 풀어야 할 문제</p>
+                    <h2 className="text-3xl font-black">오늘의 LEET 도전을 시작하세요!</h2>
+                  </div>
+                  <button className="h-11 rounded-md border border-smoke px-5 text-sm font-black">기출문제 자료실</button>
+                </div>
+
+                <div className="mb-6 flex flex-wrap gap-3">
+                  {["언어이해", "2025학년도", "12번", "예상 3분"].map((chip) => (
+                    <span key={chip} className="rounded-md bg-ash px-4 py-2 text-xs font-black">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+
+                <Card className="mb-5 border-pepper p-6">
+                  <h3 className="mb-4 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</h3>
+                  <p className="max-w-[720px] text-sm leading-7">
+                    그리고 그의 천장은 문화는 질서에 있는데, 모양은 흙의 둘레와 그 오직은 영어의 징작을
+                    본다고. 암양의 발을 돌려메려 나는 자망과 집을 밟어...
+                  </p>
+                </Card>
+
+                <Card className="mb-6 min-h-[128px] border-pepper p-6">
+                  <h3 className="text-sm font-black">[문제] 위 글을 근거로 &lt;보기&gt;를 이해한 것으로 가장 적절한 것은?</h3>
+                </Card>
+
+                <div className="space-y-3">
+                  {[
+                    "① 보기의 논지는 글의 핵심 비교 기준을 놓치고 있다.",
+                    "② 윗글은 대상의 정당화 기준과 적용 범위를 함께 묻고 있다.",
+                    "③ 보기는 원문의 인과 관계를 필연 관계로 과장하고 있다.",
+                  ].map((answer, index) => (
+                    <button
+                      key={answer}
+                      className={`h-10 w-full rounded-md border px-5 text-left text-sm ${
+                        index === 1 ? "border-pepper bg-ash font-black" : "border-smoke bg-white"
+                      }`}
+                    >
+                      {answer}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-7 grid gap-4 md:grid-cols-[150px_150px_150px_1fr]">
+                  <Stat label="정답률" value="42%" />
+                  <Stat label="평균 풀이" value="4:18" />
+                  <Stat label="누적 풀이" value="1,284명" />
+                  <button className="rounded-md bg-pepper text-sm font-black text-white">정답 제출하기</button>
+                </div>
+              </Card>
+            </div>
+          </Shell>
+        );
+      }
+
+      function RankingCard({ item }) {
+        const [letter, name, status, streak, problem, solved, accuracy] = item;
+        return (
+          <Card className="p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Avatar letter={letter} size="h-11 w-11" text="text-2xl" />
+                <div>
+                  <p className="font-black">{name}</p>
+                  <p className="text-xs">{status}</p>
+                </div>
+              </div>
+              <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">{streak}</span>
+            </div>
+            <p className="mb-5 text-sm font-black">{problem}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label="푼 문제" value={solved} />
+              <Stat label="정답률" value={accuracy} />
+            </div>
+          </Card>
+        );
+      }
+
+      function RankingPage({ page, setPage }) {
+        return (
+          <Shell page={page} setPage={setPage} label="03 풀이 현황">
+            <div className="px-7 py-8">
+              <Card className="mb-8 border-pepper p-8">
+                <div className="mb-10 flex items-start justify-between">
+                  <div>
+                    <p className="mb-4 text-sm font-black">문제 풀이 랭킹</p>
+                    <h2 className="text-3xl font-black">누가 제일 많이 풀었을까</h2>
+                  </div>
+                  <button className="h-11 rounded-md border border-smoke px-5 text-sm font-black">이번 주</button>
+                </div>
+                <div className="grid gap-7 md:grid-cols-2 xl:grid-cols-4">
+                  {rankingCards.map((item) => (
+                    <RankingCard key={item[1]} item={item} />
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="overflow-hidden">
+                <div className="grid grid-cols-[1fr_2fr_1fr_1fr] border-b border-ash px-8 py-5 text-sm font-black">
+                  <p>사용자</p>
+                  <p>최근 풀이 문제</p>
+                  <p>상태</p>
+                  <p>정답률</p>
+                </div>
+                {solvedRows.map((row) => (
+                  <div key={row[0]} className="grid grid-cols-[1fr_2fr_1fr_1fr] border-b border-ash px-8 py-7 last:border-b-0">
+                    {row.map((cell, index) => (
+                      <p key={cell} className={index === 0 || index > 1 ? "font-black" : ""}>
+                        {cell}
+                      </p>
+                    ))}
+                  </div>
+                ))}
+              </Card>
+            </div>
+          </Shell>
+        );
+      }
+
+      function MyPage({ page, setPage }) {
+        return (
+          <Shell page={page} setPage={setPage} label="04 마이 페이지">
+            <div className="px-7 py-8">
+              <Card className="mb-8 border-pepper px-8 py-10">
+                <div className="mb-12 grid place-items-center text-center">
+                  <Avatar />
+                  <p className="mt-5 text-3xl font-black">ifuril</p>
+                </div>
+                <div className="grid gap-5 md:grid-cols-4">
+                  <Stat label="가입일" value="2026.05.01" />
+                  <Stat label="목표" value="매일 1문제" />
+                  <Stat label="스트릭" value="15일" />
+                  <Stat label="정답률" value="81%" />
+                </div>
+              </Card>
+
+              <Card className="p-8">
+                <p className="mb-3 text-sm font-black">내 정보</p>
+                <h2 className="mb-7 border-b border-ash pb-6 text-3xl font-black">학습 설정</h2>
+                <div className="grid gap-6 lg:grid-cols-[1fr_1fr_360px]">
+                  <div className="grid gap-5">
+                    <Stat label="문제 범위" value="전체 회차 랜덤" />
+                    <Stat label="타이머 설정" value="3분 제한" />
+                  </div>
+                  <div className="grid gap-5">
+                    <Stat label="취약 유형" value="논리게임" />
+                    <Stat label="오답 복습" value="3일 뒤 자동 재노출" />
+                  </div>
+                  <Card className="border-pepper bg-paper p-6">
+                    <p className="mb-4 text-lg font-black">이번 주 요약</p>
+                    <ul className="space-y-2 text-sm leading-6">
+                      <li>• 언어이해 4문제 완료</li>
+                      <li>• 추리논증 3문제 완료</li>
+                      <li>• 오답노트 2개 복습 예정</li>
+                    </ul>
+                  </Card>
+                </div>
+              </Card>
+            </div>
+          </Shell>
+        );
+      }
+
+      function App() {
+        const [page, setPage] = useState("login");
+
+        if (page === "login") return <LoginPage setPage={setPage} />;
+        if (page === "daily") return <DailyPage page={page} setPage={setPage} />;
+        if (page === "ranking") return <RankingPage page={page} setPage={setPage} />;
+        return <MyPage page={page} setPage={setPage} />;
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
