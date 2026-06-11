@@ -34,6 +34,28 @@ alembic upgrade head
 
 현재 초기 마이그레이션은 `backend/alembic/versions/0001_create_initial_schema.py`에 있다.
 
+## 5. 2026년 문제 데이터 적재
+
+2025년 정답표는 이미지 기반 PDF라 자동 정답 추출을 보류한다. 개발 초기 DB에는 정답 검증이 끝난 2026년 언어이해/추리논증만 적재한다.
+
+먼저 JSON 품질을 검증한다.
+
+```bash
+python3 -m backend.app.services.import_leet_data --dry-run
+```
+
+문제가 없으면 DB에 적재한다.
+
+```bash
+python3 -m backend.app.services.import_leet_data
+```
+
+이미 적재된 2026년 시험 데이터를 다시 넣어야 할 때만 `--replace`를 붙인다.
+
+```bash
+python3 -m backend.app.services.import_leet_data --replace
+```
+
 ## 현재 작성된 스키마
 
 - `users`
@@ -49,4 +71,4 @@ alembic upgrade head
 
 ## 다음 단계
 
-`data/parsed/*.json`을 읽어서 `exams`, `passages`, `problems`, `choices`에 적재하는 seed/import 스크립트를 작성한다.
+`/daily`, `/practice/next`, `/attempts` API를 작성해서 2026년 문제를 실제 풀이 플로우로 연결한다.

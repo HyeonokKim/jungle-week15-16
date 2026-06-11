@@ -87,6 +87,15 @@ python3 backend/app/services/extract_leet_pdf.py --data-dir data --out-dir data/
 
 `raw_block`과 `extraction_warnings`는 검수용 필드다. 운영 DB에는 넣지 않거나, 임시 적재 테이블에만 보관한다.
 
+## 현재 적재 대상
+
+2025년 정답표는 이미지 기반 PDF라 텍스트 추출로 정답을 만들 수 없어 보류한다. DB seed/import 스크립트의 기본 대상은 정답까지 검증된 2026년 언어이해/추리논증이다.
+
+```bash
+python3 -m backend.app.services.import_leet_data --dry-run
+python3 -m backend.app.services.import_leet_data
+```
+
 ## 정답 형식
 
 정답표 PDF에는 `홀수형`과 `짝수형`이 함께 들어 있다. 현재 추출 스크립트는 문제 PDF가 `홀수형`이므로 정답도 `홀수형` 구간만 잘라서 `answer_index`와 `answer_label`에 저장한다.
