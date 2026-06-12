@@ -84,32 +84,34 @@ export default function BoardPage({ page, setPage }) {
           )}
         </Card>
 
-        <Card className="p-7">
-          <h2 className="mb-6 text-2xl font-black">추론 게시글</h2>
-          {!board?.posts?.length && !loading ? (
-            <p className="rounded-md border border-smoke p-5 text-sm font-black">아직 등록된 추론 게시글이 없어요.</p>
-          ) : (
-            <div className="space-y-4">
-              {board?.posts.map((post) => (
-                <article key={post.id} className="rounded-md border border-smoke p-5">
-                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-black">{post.nickname}</p>
-                      <p className="text-xs text-[#666]">{new Date(post.created_at).toLocaleString("ko-KR")}</p>
+        {!error && (
+          <Card className="p-7">
+            <h2 className="mb-6 text-2xl font-black">추론 게시글</h2>
+            {!board?.posts?.length && !loading ? (
+              <p className="rounded-md border border-smoke p-5 text-sm font-black">아직 등록된 추론 게시글이 없어요.</p>
+            ) : (
+              <div className="space-y-4">
+                {board?.posts.map((post) => (
+                  <article key={post.id} className="rounded-md border border-smoke p-5">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-lg font-black">{post.nickname}</p>
+                        <p className="text-xs text-[#666]">{new Date(post.created_at).toLocaleString("ko-KR")}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">선택 {post.selected_index}번</span>
+                        <span className="rounded-md bg-pepper px-3 py-2 text-xs font-black text-white">
+                          {post.is_correct ? "정답" : "오답"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">선택 {post.selected_index}번</span>
-                      <span className="rounded-md bg-pepper px-3 py-2 text-xs font-black text-white">
-                        {post.is_correct ? "정답" : "오답"}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="whitespace-pre-line leading-7">{post.content}</p>
-                </article>
-              ))}
-            </div>
-          )}
-        </Card>
+                    <p className="whitespace-pre-line leading-7">{post.content}</p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
       </div>
     </Shell>
   );
