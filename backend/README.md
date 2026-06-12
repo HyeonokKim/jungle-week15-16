@@ -105,6 +105,16 @@ python3 -m backend.app.services.import_leet_data --replace
 - `user_settings`
 - `review_queue`
 
+## MVP smoke 검증
+
+인증 값이 없어서 Google OAuth 실제 연결 검증을 못 하는 경우에도, 핵심 학습 플로우는 임시 사용자로 검증할 수 있다.
+
+```bash
+python3 -m backend.app.services.smoke_mvp
+```
+
+이 검증은 데일리 문제 배정, 제출/채점, 게시판 자동 등록, 내 게시글/시도 기록, 추가 연습, 오답 복습 큐 생성과 해결까지 확인한다.
+
 ## 다음 단계
 
-`/daily`, `/practice/next`, `/attempts` API를 작성해서 2026년 문제를 실제 풀이 플로우로 연결한다.
+Google OAuth Client ID/Secret을 `.env`에 넣은 뒤 브라우저에서 실제 로그인 콜백을 검증한다.
