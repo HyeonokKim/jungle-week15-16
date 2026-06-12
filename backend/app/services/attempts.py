@@ -8,6 +8,8 @@ from backend.app.models.board_post import BoardPost
 from backend.app.models.problem import Problem
 from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
+from backend.app.services.review import resolve_due_review_if_present, schedule_review_if_needed
+from backend.app.services.settings import get_or_create_user_settings
 
 
 def submit_attempt(
@@ -45,6 +47,10 @@ def submit_attempt(
     if is_daily and daily:
         daily.completed = True
         update_streak(user, today)
+        resolve_due_review_if_present(db, user, problem.id, today)
+        if not is_correct:
+            setting = get_or_create_user_settings(db, user)
+            schedule_review_if_needed(db, user, setting, problem.id, today)
 
     existing_post = db.execute(
         select(BoardPost).where(BoardPost.user_id == user.id, BoardPost.problem_id == problem.id)

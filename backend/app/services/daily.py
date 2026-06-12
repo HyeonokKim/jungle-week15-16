@@ -9,6 +9,7 @@ from backend.app.models.exam import Exam
 from backend.app.models.problem import Problem
 from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
+from backend.app.services.review import get_due_review_item
 from backend.app.services.settings import get_or_create_user_settings
 
 
@@ -25,8 +26,12 @@ def get_or_assign_daily_problem(db: Session, user: User, today: date) -> UserDai
     if daily:
         return daily
 
-    setting = get_or_create_user_settings(db, user)
-    problem = select_next_problem(db, user, setting.problem_scope)
+    due_review_item = get_due_review_item(db, user, today)
+    if due_review_item:
+        problem = due_review_item.problem
+    else:
+        setting = get_or_create_user_settings(db, user)
+        problem = select_next_problem(db, user, setting.problem_scope)
     daily = UserDaily(user_id=user.id, assigned_date=today, problem_id=problem.id, completed=False)
     db.add(daily)
     db.commit()
