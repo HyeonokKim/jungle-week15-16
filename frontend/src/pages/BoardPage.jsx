@@ -47,7 +47,7 @@ export default function BoardPage({ page, setPage }) {
   const problem = board?.problem;
 
   return (
-    <Shell page={page} setPage={setPage} label="03 풀이 현황">
+    <Shell page={page} setPage={setPage}>
       <div className="space-y-7 px-5 py-8 lg:px-8">
         <Card className="border-pepper p-7">
           <div className="mb-8 flex items-start justify-between gap-4">

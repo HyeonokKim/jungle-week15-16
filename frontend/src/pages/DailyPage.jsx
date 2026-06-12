@@ -82,7 +82,7 @@ export default function DailyPage({ page, setPage }) {
   const areaLabel = problem ? areaLabels[problem.area] : "";
 
   return (
-    <Shell page={page} setPage={setPage} label="02 오늘 문제">
+    <Shell page={page} setPage={setPage}>
       <div className="grid gap-7 px-5 py-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-7">
         <aside className="space-y-5">
           <Card className="p-7">

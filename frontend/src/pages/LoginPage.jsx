@@ -3,7 +3,7 @@ import Shell from "../components/Shell";
 
 export default function LoginPage({ setPage }) {
   return (
-    <Shell page="login" setPage={setPage} label="01 로그인">
+    <Shell page="login" setPage={setPage}>
       <div className="grid min-h-[680px] place-items-center px-6 py-10">
         <Card className="w-full max-w-[330px] border-pepper p-8 sm:p-10">
           <div className="mb-7 flex items-center gap-6">

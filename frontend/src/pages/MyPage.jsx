@@ -72,7 +72,7 @@ export default function MyPage({ page, setPage }) {
 
           <div className="grid gap-4 md:grid-cols-4">
             <Stat label="가입일" value={formatDate(stats?.created_at)} />
-            <Stat label="목표" value="매일 1문제" />
+            <Stat label="누적 풀이" value="1문제" />
             <Stat label="스트릭" value={`${stats?.current_streak ?? 0}일`} />
             <Stat label="정답률" value={`${stats?.accuracy_rate ?? 0}%`} />
           </div>
@@ -105,24 +105,6 @@ export default function MyPage({ page, setPage }) {
               ))}
             </div>
           )}
-        </Card>
-
-        <Card className="p-6">
-          <p className="mb-3 text-sm font-black">학습 기록</p>
-          <h2 className="mb-5 text-3xl font-black">잔디와 통계</h2>
-          <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <div className="rounded-md border border-ash p-5">
-              <p className="mb-4 font-black">나의 잔디밭</p>
-              <ActivityGrid />
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Stat label="누적 풀이" value={`${stats?.total_attempts ?? 0}문제`} />
-              <Stat label="언어이해 정답률" value={`${readingAccuracy}%`} />
-              <Stat label="추리논증 정답률" value={`${reasoningAccuracy}%`} />
-              <Stat label="최장 스트릭" value={`${stats?.longest_streak ?? 0}일`} />
-              <Stat label="정답 수" value={`${stats?.correct_attempts ?? 0}개`} />
-            </div>
-          </div>
         </Card>
 
         <Card className="p-6">
