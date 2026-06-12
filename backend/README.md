@@ -52,6 +52,10 @@ curl -X POST 'http://127.0.0.1:8000/attempts' \
 curl 'http://127.0.0.1:8000/problems/1/board?user_id=1'
 curl 'http://127.0.0.1:8000/me/posts?user_id=1'
 curl 'http://127.0.0.1:8000/stats/me?user_id=1'
+curl 'http://127.0.0.1:8000/settings/me?user_id=1'
+curl -X PUT 'http://127.0.0.1:8000/settings/me' \
+  -H 'Content-Type: application/json' \
+  -d '{"user_id":1,"problem_scope":"all_random","timer_limit_sec":180,"review_interval_days":3}'
 ```
 
 ## 6. 2026년 문제 데이터 적재

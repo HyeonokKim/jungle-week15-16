@@ -1,17 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api import attempts, board, daily, me
+from backend.app.api import attempts, board, daily, me, settings
 from backend.app.core.config import get_settings
 
 
 def create_app() -> FastAPI:
-    settings = get_settings()
-    app = FastAPI(title=settings.app_name)
+    app_settings = get_settings()
+    app = FastAPI(title=app_settings.app_name)
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=app_settings.cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(attempts.router)
     app.include_router(board.router)
     app.include_router(me.router)
+    app.include_router(settings.router)
 
     return app
 

@@ -48,3 +48,17 @@ export function fetchMyPosts() {
 export function fetchMyStats() {
   return request(`/stats/me?user_id=${DEV_USER_ID}`);
 }
+
+export function fetchMySettings() {
+  return request(`/settings/me?user_id=${DEV_USER_ID}`);
+}
+
+export function updateMySettings(payload) {
+  return request("/settings/me", {
+    method: "PUT",
+    body: JSON.stringify({
+      user_id: DEV_USER_ID,
+      ...payload,
+    }),
+  });
+}
