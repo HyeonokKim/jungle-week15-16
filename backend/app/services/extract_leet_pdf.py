@@ -107,6 +107,7 @@ def split_problem_and_choices(block: str, number: int) -> tuple[str, list[dict[s
     for index in range(1, len(parts), 2):
         label = parts[index]
         content = parts[index + 1].strip() if index + 1 < len(parts) else ""
+        content = remove_exam_footer(content)
         choices.append(
             {
                 "idx": ANSWER_LABELS[label],
@@ -118,6 +119,24 @@ def split_problem_and_choices(block: str, number: int) -> tuple[str, list[dict[s
     if len(choices) != 5:
         warnings.append(f"expected_5_choices_found_{len(choices)}")
     return question_text, choices, warnings
+
+
+def remove_exam_footer(text: str) -> str:
+    footer_patterns = [
+        r"\s*20\d{2}학년도\s+법학적성시험\b",
+        r"\s*\d+\s+\d+\s+20\d{2}학년도\s+법학적성시험\b",
+        r"\s*\d+\s*(?:언어이해|언\s*어\s*이\s*해|추리논증|추\s*리\s*논\s*증)\s+\d+\s+\d+\s+홀수형\b",
+        r"\s*\d+\s+\d+\s+\d+\s+홀수형\s*(?:언어이해|추리논증)\b",
+        r"\s*\d+\s+\d+\s+홀수형\s*\d+\s*(?:언어이해|추리논증)\b",
+        r"\s*\d+\s+\d+\s+홀수형(?:언어이해|추리논증)\b",
+        r"\s*\*\s*확인\s+사항\b",
+    ]
+    earliest = len(text)
+    for pattern in footer_patterns:
+        match = re.search(pattern, text)
+        if match:
+            earliest = min(earliest, match.start())
+    return text[:earliest].strip()
 
 
 def parse_reading(source: SourceSet, text: str, answers: dict[int, int]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[str]]:

@@ -160,6 +160,50 @@ def import_payload(db: Session, path: Path, payload: dict[str, Any], replace: bo
     return summary
 
 
+def update_existing_text(db: Session, path: Path, payload: dict[str, Any]) -> ImportSummary:
+    summary = validate_payload(path, payload)
+    exam_data = payload["exam"]
+    area = ProblemArea(exam_data["area"])
+
+    exam = db.execute(
+        select(Exam).where(
+            Exam.year == int(exam_data["year"]),
+            Exam.round == exam_data["round"],
+            Exam.area == area,
+        )
+    ).scalar_one_or_none()
+    if not exam:
+        raise ValueError(f"exam not found for text update: {summary.year} {summary.area.value}")
+
+    passages_by_source_ref = {passage.source_ref: passage for passage in exam.passages}
+    for passage_data in payload.get("passages", []):
+        passage = passages_by_source_ref.get(passage_data["id"])
+        if passage:
+            passage.content = passage_data["content"]
+
+    problems_by_number = {problem.number: problem for problem in exam.problems}
+    for problem_data in payload["problems"]:
+        problem = problems_by_number.get(int(problem_data["number"]))
+        if not problem:
+            raise ValueError(f"problem not found for text update: {summary.year} {summary.area.value} #{problem_data['number']}")
+
+        problem.question_text = problem_data["question_text"]
+        problem.explanation = problem_data.get("explanation")
+        problem.answer_index = int(problem_data["answer_index"])
+
+        choices_by_idx = {choice.idx: choice for choice in problem.choices}
+        for choice_data in problem_data["choices"]:
+            choice = choices_by_idx.get(int(choice_data["idx"]))
+            if not choice:
+                raise ValueError(
+                    f"choice not found for text update: "
+                    f"{summary.year} {summary.area.value} #{problem.number}-{choice_data['idx']}"
+                )
+            choice.content = choice_data["content"]
+
+    return summary
+
+
 def print_summary(prefix: str, summaries: list[ImportSummary]) -> None:
     print(prefix)
     for summary in summaries:
@@ -183,6 +227,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
     )
     parser.add_argument("--replace", action="store_true", help="Replace existing exam rows for the selected files.")
+    parser.add_argument("--update-text-only", action="store_true", help="Update existing passage, problem, and choice text without replacing rows.")
     parser.add_argument("--dry-run", action="store_true", help="Validate files without writing to the database.")
     return parser.parse_args()
 
@@ -199,11 +244,18 @@ def main() -> None:
         print_summary("Validated parsed data:", summaries)
         return
 
+    if args.replace and args.update_text_only:
+        raise ValueError("--replace and --update-text-only cannot be used together")
+
     with SessionLocal() as db:
-        imported = [import_payload(db, path, payload, replace=args.replace) for path, payload in zip(paths, payloads)]
+        if args.update_text_only:
+            imported = [update_existing_text(db, path, payload) for path, payload in zip(paths, payloads)]
+        else:
+            imported = [import_payload(db, path, payload, replace=args.replace) for path, payload in zip(paths, payloads)]
         db.commit()
 
-    print_summary("Imported parsed data:", imported)
+    prefix = "Updated parsed text:" if args.update_text_only else "Imported parsed data:"
+    print_summary(prefix, imported)
 
 
 if __name__ == "__main__":
