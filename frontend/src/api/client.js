@@ -1,8 +1,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+const TOKEN_STORAGE_KEY = "haripool_access_token";
+
 async function request(path, options = {}) {
+  const token = getAccessToken();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...options,
@@ -17,6 +21,41 @@ async function request(path, options = {}) {
   }
 
   return response.json();
+}
+
+export function getGoogleLoginUrl() {
+  return `${API_BASE_URL}/auth/google/login`;
+}
+
+export function getAccessToken() {
+  return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+export function setAccessToken(token) {
+  localStorage.setItem(TOKEN_STORAGE_KEY, token);
+}
+
+export function clearAccessToken() {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
+export function consumeTokenFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (!token) {
+    return null;
+  }
+
+  setAccessToken(token);
+  params.delete("token");
+  const nextQuery = params.toString();
+  const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+  window.history.replaceState({}, "", nextUrl);
+  return token;
+}
+
+export function fetchAuthMe() {
+  return request("/auth/me");
 }
 
 export function fetchDailyProblem() {

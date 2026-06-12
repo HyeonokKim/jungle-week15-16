@@ -24,7 +24,14 @@ cp .env.example .env
 
 ```env
 DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/haripool
+AUTH_DEV_MODE=true
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
+JWT_SECRET_KEY=change-me-in-env
 ```
+
+`AUTH_DEV_MODE=true`일 때는 토큰이 없어도 개발 사용자(`id=1`)로 API를 사용할 수 있다. 실제 인증 흐름을 강제하려면 `AUTH_DEV_MODE=false`로 바꾼다.
 
 ## 4. 마이그레이션 적용
 
@@ -43,8 +50,12 @@ uvicorn backend.app.main:app --reload
 기본 헬스 체크 엔드포인트는 `GET /health`다.
 
 현재 인증 전 개발 단계에서는 서버의 `get_current_user()` 의존성이 기본 개발 사용자(`id=1`)를 반환한다.
+Google OAuth 설정을 넣으면 `/auth/google/login`에서 로그인 플로우를 시작하고, 콜백에서 발급한 JWT를 프론트로 전달한다.
+Google 로그인으로 새 사용자가 들어오면 `users.auth_provider='google'`, `users.provider_id=<Google sub>`, `password_hash=null`로 저장하고, `user_settings` 기본 행을 함께 만든다. JWT 자체는 DB에 저장하지 않는다.
 
 ```bash
+curl 'http://127.0.0.1:8000/auth/google/login'
+curl 'http://127.0.0.1:8000/auth/me'
 curl 'http://127.0.0.1:8000/daily'
 curl 'http://127.0.0.1:8000/practice/next'
 curl -X POST 'http://127.0.0.1:8000/attempts' \

@@ -1,6 +1,12 @@
 import { navItems } from "../data/mockData";
+import { clearAccessToken } from "../api/client";
 
 export default function Nav({ page, setPage }) {
+  function handleLogout() {
+    clearAccessToken();
+    setPage("login");
+  }
+
   return (
     <nav className="flex flex-wrap items-center gap-3">
       {navItems.map(([id, label]) => (
@@ -16,6 +22,12 @@ export default function Nav({ page, setPage }) {
           {label}
         </button>
       ))}
+      <button
+        onClick={handleLogout}
+        className="h-11 rounded-md border border-smoke bg-white px-6 text-sm font-black text-pepper hover:bg-paper"
+      >
+        로그아웃
+      </button>
     </nav>
   );
 }

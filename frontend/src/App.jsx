@@ -1,12 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { consumeTokenFromUrl, getAccessToken } from "./api/client";
 import BoardPage from "./pages/BoardPage";
 import DailyPage from "./pages/DailyPage";
 import LoginPage from "./pages/LoginPage";
 import MyPage from "./pages/MyPage";
 
 export default function App() {
-  const [page, setPage] = useState("daily");
+  const [page, setPage] = useState(() => (getAccessToken() ? "daily" : "login"));
+
+  useEffect(() => {
+    const token = consumeTokenFromUrl();
+    if (token) {
+      setPage("daily");
+    }
+  }, []);
 
   if (page === "login") {
     return <LoginPage setPage={setPage} />;
