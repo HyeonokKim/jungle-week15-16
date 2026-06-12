@@ -18,7 +18,7 @@ def get_or_create_user_settings(db: Session, user: User) -> UserSetting:
 
 
 def update_user_settings(db: Session, setting: UserSetting, payload: UserSettingsUpdate) -> UserSetting:
-    update_data = payload.model_dump(exclude={"user_id"}, exclude_unset=True)
+    update_data = payload.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(setting, field, value)
 

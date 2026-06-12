@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.user import User
 from backend.app.schemas.board import BoardPostResponse, BoardProblemResponse, ProblemBoardResponse
 from backend.app.services.board import get_problem_board
-from backend.app.services.dev_user import get_or_create_dev_user
 
 
 router = APIRouter(prefix="/problems", tags=["board"])
@@ -13,10 +14,9 @@ router = APIRouter(prefix="/problems", tags=["board"])
 @router.get("/{problem_id}/board", response_model=ProblemBoardResponse)
 def read_problem_board(
     problem_id: int,
-    user_id: int = Query(default=1, gt=0),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> ProblemBoardResponse:
-    user = get_or_create_dev_user(db, user_id)
     try:
         problem, posts = get_problem_board(db, user, problem_id)
     except LookupError as exc:

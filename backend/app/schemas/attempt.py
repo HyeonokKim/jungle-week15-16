@@ -2,7 +2,6 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class AttemptCreate(BaseModel):
-    user_id: int = Field(gt=0)
     problem_id: int = Field(gt=0)
     selected_index: int = Field(ge=1, le=5)
     reasoning: str

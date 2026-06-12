@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.user import User
 from backend.app.models.user_setting import UserSetting
 from backend.app.schemas.settings import UserSettingsResponse, UserSettingsUpdate
-from backend.app.services.dev_user import get_or_create_dev_user
 from backend.app.services.settings import get_or_create_user_settings, update_user_settings
 
 
@@ -25,10 +26,9 @@ def serialize_user_settings(setting: UserSetting) -> UserSettingsResponse:
 
 @router.get("/settings/me", response_model=UserSettingsResponse)
 def read_my_settings(
-    user_id: int = Query(default=1, gt=0),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> UserSettingsResponse:
-    user = get_or_create_dev_user(db, user_id)
     setting = get_or_create_user_settings(db, user)
     return serialize_user_settings(setting)
 
@@ -37,7 +37,7 @@ def read_my_settings(
 def update_my_settings(
     payload: UserSettingsUpdate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> UserSettingsResponse:
-    user = get_or_create_dev_user(db, payload.user_id)
     setting = get_or_create_user_settings(db, user)
     return serialize_user_settings(update_user_settings(db, setting, payload))

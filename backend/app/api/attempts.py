@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.user import User
 from backend.app.schemas.attempt import AttemptCreate, AttemptResultResponse
 from backend.app.services.attempts import submit_attempt
-from backend.app.services.dev_user import get_or_create_dev_user
 
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
@@ -16,8 +17,8 @@ router = APIRouter(prefix="/attempts", tags=["attempts"])
 def create_attempt(
     payload: AttemptCreate,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> AttemptResultResponse:
-    user = get_or_create_dev_user(db, payload.user_id)
     try:
         attempt = submit_attempt(
             db=db,

@@ -1,6 +1,4 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
-const DEV_USER_ID = 1;
-
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
@@ -22,18 +20,17 @@ async function request(path, options = {}) {
 }
 
 export function fetchDailyProblem() {
-  return request(`/daily?user_id=${DEV_USER_ID}`);
+  return request("/daily");
 }
 
 export function fetchPracticeProblem() {
-  return request(`/practice/next?user_id=${DEV_USER_ID}`);
+  return request("/practice/next");
 }
 
 export function submitAttempt({ problemId, selectedIndex, reasoning }) {
   return request("/attempts", {
     method: "POST",
     body: JSON.stringify({
-      user_id: DEV_USER_ID,
       problem_id: problemId,
       selected_index: selectedIndex,
       reasoning,
@@ -42,26 +39,25 @@ export function submitAttempt({ problemId, selectedIndex, reasoning }) {
 }
 
 export function fetchProblemBoard(problemId) {
-  return request(`/problems/${problemId}/board?user_id=${DEV_USER_ID}`);
+  return request(`/problems/${problemId}/board`);
 }
 
 export function fetchMyPosts() {
-  return request(`/me/posts?user_id=${DEV_USER_ID}`);
+  return request("/me/posts");
 }
 
 export function fetchMyStats() {
-  return request(`/stats/me?user_id=${DEV_USER_ID}`);
+  return request("/stats/me");
 }
 
 export function fetchMySettings() {
-  return request(`/settings/me?user_id=${DEV_USER_ID}`);
+  return request("/settings/me");
 }
 
 export function updateMySettings(payload) {
   return request("/settings/me", {
     method: "PUT",
     body: JSON.stringify({
-      user_id: DEV_USER_ID,
       ...payload,
     }),
   });

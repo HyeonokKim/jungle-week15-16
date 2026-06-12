@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.user import User
 from backend.app.schemas.me import AreaAccuracyResponse, MyPostResponse, MyStatsResponse
-from backend.app.services.dev_user import get_or_create_dev_user
 from backend.app.services.me import calculate_accuracy, get_my_attempts, get_my_posts, summarize_area_accuracy
 
 
@@ -17,10 +18,9 @@ AREA_LABELS = {
 
 @router.get("/me/posts", response_model=list[MyPostResponse])
 def read_my_posts(
-    user_id: int = Query(default=1, gt=0),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> list[MyPostResponse]:
-    user = get_or_create_dev_user(db, user_id)
     posts = get_my_posts(db, user)
     return [
         MyPostResponse(
@@ -38,10 +38,9 @@ def read_my_posts(
 
 @router.get("/stats/me", response_model=MyStatsResponse)
 def read_my_stats(
-    user_id: int = Query(default=1, gt=0),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> MyStatsResponse:
-    user = get_or_create_dev_user(db, user_id)
     attempts = get_my_attempts(db, user)
     total_attempts = len(attempts)
     correct_attempts = sum(1 for attempt in attempts if attempt.is_correct)

@@ -1,14 +1,15 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
-from backend.app.models.user_daily import UserDaily
+from backend.app.core.dependencies import get_current_user
 from backend.app.models.problem import Problem
+from backend.app.models.user import User
+from backend.app.models.user_daily import UserDaily
 from backend.app.schemas.problem import ChoiceResponse, DailyProblemResponse, ProblemResponse
 from backend.app.services.daily import get_or_assign_daily_problem
-from backend.app.services.dev_user import get_or_create_dev_user
 
 
 router = APIRouter(prefix="/daily", tags=["daily"])
@@ -16,10 +17,9 @@ router = APIRouter(prefix="/daily", tags=["daily"])
 
 @router.get("", response_model=DailyProblemResponse)
 def get_daily_problem(
-    user_id: int = Query(default=1, gt=0),
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> DailyProblemResponse:
-    user = get_or_create_dev_user(db, user_id)
     try:
         daily = get_or_assign_daily_problem(db, user, date.today())
     except LookupError as exc:

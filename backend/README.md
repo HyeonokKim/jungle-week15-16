@@ -42,21 +42,21 @@ uvicorn backend.app.main:app --reload
 
 기본 헬스 체크 엔드포인트는 `GET /health`다.
 
-현재 인증 전 개발 단계에서는 `user_id=1`을 기본 개발 사용자로 사용한다.
+현재 인증 전 개발 단계에서는 서버의 `get_current_user()` 의존성이 기본 개발 사용자(`id=1`)를 반환한다.
 
 ```bash
-curl 'http://127.0.0.1:8000/daily?user_id=1'
-curl 'http://127.0.0.1:8000/practice/next?user_id=1'
+curl 'http://127.0.0.1:8000/daily'
+curl 'http://127.0.0.1:8000/practice/next'
 curl -X POST 'http://127.0.0.1:8000/attempts' \
   -H 'Content-Type: application/json' \
-  -d '{"user_id":1,"problem_id":1,"selected_index":4,"reasoning":"선택 근거"}'
-curl 'http://127.0.0.1:8000/problems/1/board?user_id=1'
-curl 'http://127.0.0.1:8000/me/posts?user_id=1'
-curl 'http://127.0.0.1:8000/stats/me?user_id=1'
-curl 'http://127.0.0.1:8000/settings/me?user_id=1'
+  -d '{"problem_id":1,"selected_index":4,"reasoning":"선택 근거"}'
+curl 'http://127.0.0.1:8000/problems/1/board'
+curl 'http://127.0.0.1:8000/me/posts'
+curl 'http://127.0.0.1:8000/stats/me'
+curl 'http://127.0.0.1:8000/settings/me'
 curl -X PUT 'http://127.0.0.1:8000/settings/me' \
   -H 'Content-Type: application/json' \
-  -d '{"user_id":1,"problem_scope":"all_random","timer_limit_sec":180,"review_interval_days":3}'
+  -d '{"problem_scope":"all_random","timer_limit_sec":180,"review_interval_days":3}'
 ```
 
 ## 6. 2026년 문제 데이터 적재
