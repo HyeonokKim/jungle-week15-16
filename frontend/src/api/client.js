@@ -25,6 +25,10 @@ export function fetchDailyProblem() {
   return request(`/daily?user_id=${DEV_USER_ID}`);
 }
 
+export function fetchPracticeProblem() {
+  return request(`/practice/next?user_id=${DEV_USER_ID}`);
+}
+
 export function submitAttempt({ problemId, selectedIndex, reasoning }) {
   return request("/attempts", {
     method: "POST",

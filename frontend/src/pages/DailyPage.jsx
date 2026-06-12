@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { fetchDailyProblem, submitAttempt } from "../api/client";
+import { fetchDailyProblem, fetchPracticeProblem, submitAttempt } from "../api/client";
 import ActivityGrid from "../components/ActivityGrid";
 import Avatar from "../components/Avatar";
 import Card from "../components/Card";
@@ -15,6 +15,7 @@ const areaLabels = {
 
 export default function DailyPage({ page, setPage }) {
   const [daily, setDaily] = useState(null);
+  const [mode, setMode] = useState("daily");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [reasoning, setReasoning] = useState("");
   const [result, setResult] = useState(null);
@@ -81,6 +82,23 @@ export default function DailyPage({ page, setPage }) {
   const problem = daily?.problem;
   const areaLabel = problem ? areaLabels[problem.area] : "";
 
+  async function loadPracticeProblem() {
+    try {
+      setLoading(true);
+      const problemData = await fetchPracticeProblem();
+      setDaily({ assigned_date: null, completed: false, problem: problemData });
+      setMode("practice");
+      setSelectedIndex(null);
+      setReasoning("");
+      setResult(null);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Shell page={page} setPage={setPage}>
       <div className="grid gap-7 px-5 py-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-7">
@@ -135,10 +153,16 @@ export default function DailyPage({ page, setPage }) {
               <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="mb-3 text-sm font-black">오늘 풀어야 할 문제</p>
-                  <h2 className="text-3xl font-black">오늘의 LEET 도전을 시작하세요!</h2>
+                  <h2 className="text-3xl font-black">
+                    {mode === "daily" ? "오늘의 LEET 도전을 시작하세요!" : "추가 연습 문제를 풀어보세요!"}
+                  </h2>
                 </div>
-                <button className="h-11 rounded-md border border-smoke px-5 text-sm font-black hover:bg-paper">
-                  기출문제 자료실
+                <button
+                  type="button"
+                  onClick={loadPracticeProblem}
+                  className="h-11 rounded-md border border-smoke px-5 text-sm font-black hover:bg-paper"
+                >
+                  추가 연습
                 </button>
               </div>
 

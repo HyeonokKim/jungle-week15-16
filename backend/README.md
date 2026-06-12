@@ -46,6 +46,7 @@ uvicorn backend.app.main:app --reload
 
 ```bash
 curl 'http://127.0.0.1:8000/daily?user_id=1'
+curl 'http://127.0.0.1:8000/practice/next?user_id=1'
 curl -X POST 'http://127.0.0.1:8000/attempts' \
   -H 'Content-Type: application/json' \
   -d '{"user_id":1,"problem_id":1,"selected_index":4,"reasoning":"선택 근거"}'
