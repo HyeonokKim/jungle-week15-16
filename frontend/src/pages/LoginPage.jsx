@@ -2,9 +2,14 @@ import { getGoogleLoginUrl } from "../api/client";
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 
-export default function LoginPage({ setPage }) {
+export default function LoginPage({ authMessage, setAuthMessage, setPage }) {
   function handleGoogleLogin() {
     window.location.href = getGoogleLoginUrl();
+  }
+
+  function handleDevMode() {
+    setAuthMessage("");
+    setPage("daily");
   }
 
   return (
@@ -18,6 +23,12 @@ export default function LoginPage({ setPage }) {
             <h2 className="text-2xl font-black">로그인</h2>
           </div>
 
+          {authMessage && (
+            <div className="mb-5 rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">
+              {authMessage}
+            </div>
+          )}
+
           <button
             onClick={handleGoogleLogin}
             className="h-12 w-full rounded-md bg-pepper text-sm font-black text-white hover:bg-[#444]"
@@ -26,7 +37,7 @@ export default function LoginPage({ setPage }) {
           </button>
 
           <button
-            onClick={() => setPage("daily")}
+            onClick={handleDevMode}
             className="mt-4 h-12 w-full rounded-md border border-smoke bg-white text-sm font-black text-pepper hover:bg-paper"
           >
             개발 모드로 둘러보기

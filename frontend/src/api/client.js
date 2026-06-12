@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 const TOKEN_STORAGE_KEY = "haripool_access_token";
+export const AUTH_REQUIRED_EVENT = "haripool:auth-required";
 
 async function request(path, options = {}) {
   const token = getAccessToken();
@@ -17,6 +18,10 @@ async function request(path, options = {}) {
     const detail = Array.isArray(errorBody.detail)
       ? errorBody.detail.map((item) => item.msg).join(", ")
       : errorBody.detail;
+    if (response.status === 401) {
+      clearAccessToken();
+      window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT, { detail: detail || "로그인이 필요합니다." }));
+    }
     throw new Error(detail || "API 요청에 실패했습니다.");
   }
 
@@ -37,6 +42,10 @@ export function setAccessToken(token) {
 
 export function clearAccessToken() {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
+export function hasAccessToken() {
+  return Boolean(getAccessToken());
 }
 
 export function consumeTokenFromUrl() {
