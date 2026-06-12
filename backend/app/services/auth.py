@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import ssl
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+import certifi
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -119,7 +121,8 @@ def generate_unique_nickname(db: Session, userinfo: dict[str, str]) -> str:
 
 def _request_json(request: Request) -> dict[str, str]:
     try:
-        with urlopen(request, timeout=10) as response:
+        context = ssl.create_default_context(cafile=certifi.where())
+        with urlopen(request, timeout=10, context=context) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Google OAuth request failed") from exc
