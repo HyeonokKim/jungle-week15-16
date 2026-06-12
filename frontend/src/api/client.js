@@ -40,3 +40,11 @@ export function submitAttempt({ problemId, selectedIndex, reasoning }) {
 export function fetchProblemBoard(problemId) {
   return request(`/problems/${problemId}/board?user_id=${DEV_USER_ID}`);
 }
+
+export function fetchMyPosts() {
+  return request(`/me/posts?user_id=${DEV_USER_ID}`);
+}
+
+export function fetchMyStats() {
+  return request(`/stats/me?user_id=${DEV_USER_ID}`);
+}

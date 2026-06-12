@@ -50,6 +50,8 @@ curl -X POST 'http://127.0.0.1:8000/attempts' \
   -H 'Content-Type: application/json' \
   -d '{"user_id":1,"problem_id":1,"selected_index":4,"reasoning":"선택 근거"}'
 curl 'http://127.0.0.1:8000/problems/1/board?user_id=1'
+curl 'http://127.0.0.1:8000/me/posts?user_id=1'
+curl 'http://127.0.0.1:8000/stats/me?user_id=1'
 ```
 
 ## 6. 2026년 문제 데이터 적재
