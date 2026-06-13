@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "Haripool API"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/haripool"
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
     frontend_auth_redirect_url: str = "http://localhost:5173/"
     auth_dev_mode: bool = True
     google_client_id: str = ""

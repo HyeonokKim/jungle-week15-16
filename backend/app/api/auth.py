@@ -25,6 +25,11 @@ def google_login() -> RedirectResponse:
     return RedirectResponse(build_google_login_url())
 
 
+@router.get("/google/login-url")
+def google_login_url() -> dict[str, str]:
+    return {"url": build_google_login_url()}
+
+
 @router.get("/google/callback")
 def google_callback(
     code: str = Query(min_length=1),

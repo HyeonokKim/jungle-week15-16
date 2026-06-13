@@ -1,10 +1,27 @@
-import { getGoogleLoginUrl } from "../api/client";
+import { useState } from "react";
+
+import { fetchGoogleLoginUrl } from "../api/client";
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 
 export default function LoginPage({ authMessage, setAuthMessage, setPage }) {
-  function handleGoogleLogin() {
-    window.location.href = getGoogleLoginUrl();
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  async function handleGoogleLogin() {
+    try {
+      setLoginLoading(true);
+      setAuthMessage("");
+      const { url } = await fetchGoogleLoginUrl();
+      window.location.href = url;
+    } catch (err) {
+      setAuthMessage(
+        err.message === "Failed to fetch"
+          ? "백엔드 서버가 실행 중인지 확인해주세요."
+          : err.message
+      );
+    } finally {
+      setLoginLoading(false);
+    }
   }
 
   function handleDevMode() {
@@ -14,13 +31,13 @@ export default function LoginPage({ authMessage, setAuthMessage, setPage }) {
 
   return (
     <Shell page="login" setPage={setPage}>
-      <div className="grid min-h-[680px] place-items-center px-6 py-10">
-        <Card className="w-full max-w-[330px] border-pepper p-8 sm:p-10">
-          <div className="mb-7 flex items-center gap-6">
-            <div className="grid h-12 w-12 place-items-center rounded-md bg-pepper text-lg font-black text-white">
+      <div className="grid min-h-[calc(100vh-11rem)] place-items-center px-4 py-8 sm:px-6 sm:py-12 lg:min-h-[680px]">
+        <Card className="w-full max-w-sm border-pepper p-6 sm:p-10">
+          <div className="mb-7 flex items-center gap-4 sm:gap-6">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-pepper text-lg font-black text-white sm:h-12 sm:w-12">
               H
             </div>
-            <h2 className="text-2xl font-black">로그인</h2>
+            <h2 className="text-2xl font-black leading-tight">로그인</h2>
           </div>
 
           {authMessage && (
@@ -31,14 +48,15 @@ export default function LoginPage({ authMessage, setAuthMessage, setPage }) {
 
           <button
             onClick={handleGoogleLogin}
-            className="h-12 w-full rounded-md bg-pepper text-sm font-black text-white hover:bg-[#444]"
+            disabled={loginLoading}
+            className="min-h-12 w-full rounded-md bg-pepper px-4 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
           >
-            Google로 로그인하기
+            {loginLoading ? "Google 로그인 준비 중..." : "Google로 로그인하기"}
           </button>
 
           <button
             onClick={handleDevMode}
-            className="mt-4 h-12 w-full rounded-md border border-smoke bg-white text-sm font-black text-pepper hover:bg-paper"
+            className="mt-4 min-h-12 w-full rounded-md border border-smoke bg-white px-4 py-3 text-sm font-black text-pepper hover:bg-paper"
           >
             개발 모드로 둘러보기
           </button>

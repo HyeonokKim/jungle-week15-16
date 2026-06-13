@@ -32,6 +32,10 @@ export function getGoogleLoginUrl() {
   return `${API_BASE_URL}/auth/google/login`;
 }
 
+export function fetchGoogleLoginUrl() {
+  return request("/auth/google/login-url");
+}
+
 export function getAccessToken() {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
 }
