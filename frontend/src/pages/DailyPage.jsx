@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { fetchDailyProblem, fetchMySettings, fetchMyStats, fetchPracticeProblem, submitAttempt } from "../api/client";
 import ActivityGrid from "../components/ActivityGrid";
@@ -20,6 +20,7 @@ function formatTimer(totalSeconds) {
 }
 
 export default function DailyPage({ page, setPage }) {
+  const problemContentRef = useRef(null);
   const [daily, setDaily] = useState(null);
   const [mode, setMode] = useState("daily");
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -29,6 +30,7 @@ export default function DailyPage({ page, setPage }) {
   const [completedToday, setCompletedToday] = useState(false);
   const [timerLimitSec, setTimerLimitSec] = useState(180);
   const [remainingSec, setRemainingSec] = useState(180);
+  const [problemContentWidth, setProblemContentWidth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -129,6 +131,7 @@ export default function DailyPage({ page, setPage }) {
   const areaLabel = problem ? areaLabels[problem.area] : "";
   const timerPercent = timerLimitSec > 0 ? (remainingSec / timerLimitSec) * 100 : 0;
   const timerExpired = remainingSec === 0;
+  const problemContentStyle = problemContentWidth ? { width: `${problemContentWidth}px` } : undefined;
 
   useEffect(() => {
     if (!problem || result || remainingSec <= 0) {
@@ -141,6 +144,34 @@ export default function DailyPage({ page, setPage }) {
 
     return () => window.clearInterval(timerId);
   }, [problem, remainingSec, result]);
+
+  useEffect(() => {
+    if (!problemContentRef.current || !problem) {
+      setProblemContentWidth(null);
+      return undefined;
+    }
+
+    const measureProblemContent = () => {
+      const blocks = problemContentRef.current?.querySelectorAll("[data-problem-content-block]") ?? [];
+      const nextWidth = Math.max(
+        ...Array.from(blocks).map((block) => block.getBoundingClientRect().width),
+        0,
+      );
+      setProblemContentWidth(nextWidth > 0 ? Math.ceil(nextWidth) : null);
+    };
+
+    measureProblemContent();
+
+    const resizeObserver = new ResizeObserver(measureProblemContent);
+    const blocks = problemContentRef.current.querySelectorAll("[data-problem-content-block]");
+    blocks.forEach((block) => resizeObserver.observe(block));
+    window.addEventListener("resize", measureProblemContent);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", measureProblemContent);
+    };
+  }, [problem]);
 
   async function loadPracticeProblem() {
     try {
@@ -237,20 +268,26 @@ export default function DailyPage({ page, setPage }) {
 
               <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,auto)_minmax(320px,380px)] xl:items-start">
                 <div className="order-2 min-w-0 xl:order-1">
-                  <div className="inline-grid w-fit max-w-full min-w-0 grid-cols-[minmax(0,auto)] justify-items-start gap-5">
+                  <div
+                    ref={problemContentRef}
+                    className="inline-grid w-fit max-w-full min-w-0 grid-cols-[minmax(0,auto)] justify-items-start gap-5"
+                  >
                     {problem.passage && (
-                      <div className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
+                      <div data-problem-content-block className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
                         <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
                         <p className="whitespace-pre-line break-keep text-base leading-7">{problem.passage}</p>
                       </div>
                     )}
 
-                    <div className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
+                    <div data-problem-content-block className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
                       <p className="mb-3 text-sm font-black">[문제] {problem.number}번</p>
                       <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
                     </div>
 
-                    <div className="grid w-fit max-w-full justify-items-start gap-3">
+                    <div
+                      className="grid w-full max-w-full gap-3"
+                      style={problemContentStyle}
+                    >
                       {problem.choices.map((choice) => {
                         const isSelected = selectedIndex === choice.idx;
                         const isAnswer = result?.answer_index === choice.idx;
@@ -259,7 +296,7 @@ export default function DailyPage({ page, setPage }) {
                             key={choice.id}
                             disabled={Boolean(result)}
                             onClick={() => setSelectedIndex(choice.idx)}
-                            className={`w-fit max-w-full rounded-md border px-5 py-3 text-left text-base ${
+                            className={`w-full rounded-md border px-5 py-3 text-left text-base ${
                               isAnswer
                                 ? "border-pepper bg-pepper font-black text-white"
                                 : isSelected
@@ -273,14 +310,14 @@ export default function DailyPage({ page, setPage }) {
                       })}
                     </div>
 
-                    <div className="grid w-full gap-3 sm:grid-cols-3">
+                    <div className="grid w-full gap-3 sm:grid-cols-3" style={problemContentStyle}>
                       <Stat label="정답률" value="42%" />
                       <Stat label="평균 풀이" value="4:18" />
                       <Stat label="누적 풀이" value="1,284명" />
                     </div>
 
                     {result && (
-                      <div className="rounded-md border border-pepper p-5">
+                      <div className="rounded-md border border-pepper p-5" style={problemContentStyle}>
                         <p className="text-xl font-black">{result.is_correct ? "정답입니다." : "오답입니다."}</p>
                         <p className="mt-2 text-sm">
                           선택한 답 {result.selected_index}번 / 정답 {result.answer_index}번
@@ -291,7 +328,7 @@ export default function DailyPage({ page, setPage }) {
                       </div>
                     )}
 
-                    <label className="block w-full">
+                    <label className="block w-full" style={problemContentStyle}>
                       <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
                       <textarea
                         value={reasoning}
@@ -302,12 +339,17 @@ export default function DailyPage({ page, setPage }) {
                       />
                     </label>
 
-                    {error && <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">{error}</p>}
+                    {error && (
+                      <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black" style={problemContentStyle}>
+                        {error}
+                      </p>
+                    )}
 
                     <button
                       disabled={submitting || Boolean(result)}
                       onClick={handleSubmit}
                       className="min-h-12 w-full rounded-md bg-pepper px-5 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
+                      style={problemContentStyle}
                     >
                       {submitting ? "제출 중..." : result ? "제출 완료" : "정답 제출하기"}
                     </button>
