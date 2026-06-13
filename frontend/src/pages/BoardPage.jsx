@@ -4,11 +4,6 @@ import { createBoardComment, fetchDailyProblem, fetchProblemBoard } from "../api
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 
-const areaLabels = {
-  reading_comprehension: "언어이해",
-  reasoning_argumentation: "추리논증",
-};
-
 export default function BoardPage({ page, setPage }) {
   const [board, setBoard] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
@@ -105,17 +100,6 @@ export default function BoardPage({ page, setPage }) {
                 이 문제를 제출한 뒤에 다른 사람들의 추론을 볼 수 있어요. 서버에서 스포일러 차단 규칙을 적용하고 있습니다.
               </p>
               <p className="mt-3 text-xs font-black text-[#666]">{error}</p>
-            </div>
-          )}
-
-          {!loading && problem && (
-            <div className="mx-auto w-fit max-w-full rounded-md border border-smoke p-5">
-              <div className="mb-4 flex flex-wrap gap-3">
-                <span className="rounded-md bg-ash px-4 py-2 text-xs font-black">{areaLabels[problem.area]}</span>
-                <span className="rounded-md bg-ash px-4 py-2 text-xs font-black">{problem.year}학년도</span>
-                <span className="rounded-md bg-ash px-4 py-2 text-xs font-black">{problem.number}번</span>
-              </div>
-              <p className="whitespace-pre-line break-keep text-base font-black leading-7">{problem.question_text}</p>
             </div>
           )}
         </Card>

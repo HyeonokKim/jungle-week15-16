@@ -280,7 +280,6 @@ export default function DailyPage({ page, setPage }) {
                     )}
 
                     <div data-problem-content-block className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
-                      <p className="mb-3 text-sm font-black">[문제] {problem.number}번</p>
                       <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
                     </div>
 
