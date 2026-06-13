@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import { fetchMyPosts, fetchMySettings, fetchMyStats, updateMySettings } from "../api/client";
-import ActivityGrid from "../components/ActivityGrid";
 import Avatar from "../components/Avatar";
 import Card from "../components/Card";
 import SettingOptionGroup from "../components/SettingOptionGroup";
@@ -104,7 +103,7 @@ export default function MyPage({ page, setPage }) {
 
   return (
     <Shell page={page} setPage={setPage}>
-      <div className="space-y-7 px-5 py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[1100px] space-y-7 px-4 py-8 sm:px-5 lg:px-8">
         <Card className="border-pepper px-6 py-8">
           <div className="mb-10 grid place-items-center">
             <Avatar />

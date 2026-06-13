@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { fetchDailyProblem, fetchPracticeProblem, submitAttempt } from "../api/client";
+import { fetchDailyProblem, fetchMySettings, fetchMyStats, fetchPracticeProblem, submitAttempt } from "../api/client";
 import ActivityGrid from "../components/ActivityGrid";
 import Avatar from "../components/Avatar";
 import Card from "../components/Card";
@@ -13,12 +13,22 @@ const areaLabels = {
   reasoning_argumentation: "추리논증",
 };
 
+function formatTimer(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function DailyPage({ page, setPage }) {
   const [daily, setDaily] = useState(null);
   const [mode, setMode] = useState("daily");
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [reasoning, setReasoning] = useState("");
   const [result, setResult] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [completedToday, setCompletedToday] = useState(false);
+  const [timerLimitSec, setTimerLimitSec] = useState(180);
+  const [remainingSec, setRemainingSec] = useState(180);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -31,6 +41,7 @@ export default function DailyPage({ page, setPage }) {
         const data = await fetchDailyProblem();
         if (!ignore) {
           setDaily(data);
+          setCompletedToday(data.completed);
           setSelectedIndex(null);
           setReasoning("");
           setResult(null);
@@ -47,7 +58,37 @@ export default function DailyPage({ page, setPage }) {
       }
     }
 
+    async function loadMyStats() {
+      try {
+        const data = await fetchMyStats();
+        if (!ignore) {
+          setStats(data);
+        }
+      } catch {
+        if (!ignore) {
+          setStats(null);
+        }
+      }
+    }
+
+    async function loadMySettings() {
+      try {
+        const data = await fetchMySettings();
+        if (!ignore) {
+          setTimerLimitSec(data.timer_limit_sec);
+          setRemainingSec(data.timer_limit_sec);
+        }
+      } catch {
+        if (!ignore) {
+          setTimerLimitSec(180);
+          setRemainingSec(180);
+        }
+      }
+    }
+
     loadDailyProblem();
+    loadMyStats();
+    loadMySettings();
     return () => {
       ignore = true;
     };
@@ -71,6 +112,11 @@ export default function DailyPage({ page, setPage }) {
         reasoning,
       });
       setResult(data);
+      if (mode === "daily") {
+        setCompletedToday(true);
+        setDaily((current) => current ? { ...current, completed: true } : current);
+        fetchMyStats().then(setStats).catch(() => {});
+      }
       setError("");
     } catch (err) {
       setError(err.message);
@@ -81,6 +127,20 @@ export default function DailyPage({ page, setPage }) {
 
   const problem = daily?.problem;
   const areaLabel = problem ? areaLabels[problem.area] : "";
+  const timerPercent = timerLimitSec > 0 ? (remainingSec / timerLimitSec) * 100 : 0;
+  const timerExpired = remainingSec === 0;
+
+  useEffect(() => {
+    if (!problem || result || remainingSec <= 0) {
+      return undefined;
+    }
+
+    const timerId = window.setInterval(() => {
+      setRemainingSec((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timerId);
+  }, [problem, remainingSec, result]);
 
   async function loadPracticeProblem() {
     try {
@@ -88,6 +148,7 @@ export default function DailyPage({ page, setPage }) {
       const problemData = await fetchPracticeProblem();
       setDaily({ assigned_date: null, completed: false, problem: problemData });
       setMode("practice");
+      setRemainingSec(timerLimitSec);
       setSelectedIndex(null);
       setReasoning("");
       setResult(null);
@@ -101,7 +162,7 @@ export default function DailyPage({ page, setPage }) {
 
   return (
     <Shell page={page} setPage={setPage}>
-      <div className="grid gap-7 px-5 py-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-7">
+      <div className="mx-auto grid w-full max-w-[1360px] min-w-0 gap-7 px-3 py-6 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-7 lg:py-8">
         <aside className="space-y-5">
           <Card className="p-7">
             <div className="mb-8 flex items-center gap-5">
@@ -117,10 +178,10 @@ export default function DailyPage({ page, setPage }) {
             <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
               <h2 className="text-lg font-black">나의 잔디밭</h2>
               <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">
-                현재 15일 연속 문제 풀이 중!
+                현재 {stats?.current_streak ?? 0}일 연속 문제 풀이 중!
               </span>
             </div>
-            <ActivityGrid />
+            <ActivityGrid currentStreak={stats?.current_streak ?? 0} completedToday={completedToday} />
           </Card>
 
           <Card className="p-7">
@@ -138,7 +199,7 @@ export default function DailyPage({ page, setPage }) {
           </Card>
         </aside>
 
-        <Card className="border-pepper p-7">
+        <Card className="min-w-0 border-pepper p-4 sm:p-7">
           {loading ? (
             <div className="grid min-h-[520px] place-items-center text-lg font-black">오늘의 문제를 불러오는 중...</div>
           ) : !problem ? (
@@ -167,86 +228,113 @@ export default function DailyPage({ page, setPage }) {
               </div>
 
               <div className="mb-5 flex flex-wrap gap-3">
-                {[areaLabel, `${problem.year}학년도`, `${problem.number}번`, "예상 3분"].map((tag) => (
+                {[areaLabel, `${problem.year}학년도`, `${problem.number}번`, `${Math.round(timerLimitSec / 60)}분 제한`].map((tag) => (
                   <span key={tag} className="rounded-md bg-ash px-4 py-2 text-xs font-black">
                     {tag}
                   </span>
                 ))}
               </div>
 
-              {problem.passage && (
-                <div className="mb-5 flex justify-center">
-                  <div className="w-fit max-w-full rounded-md border border-pepper p-5">
-                    <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
-                    <p className="whitespace-pre-line leading-7">{problem.passage}</p>
+              <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(560px,1fr)_minmax(320px,380px)] 2xl:items-start">
+                <div className="min-w-0">
+                  <div className="w-fit max-w-full space-y-5">
+                    {problem.passage && (
+                      <div className="w-full rounded-md border border-pepper p-4 sm:p-5">
+                        <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
+                        <p className="whitespace-pre-line break-keep text-base leading-7">{problem.passage}</p>
+                      </div>
+                    )}
+
+                    <div className="w-full rounded-md border border-pepper p-4 sm:p-5">
+                      <p className="mb-3 text-sm font-black">[문제] {problem.number}번</p>
+                      <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
+                    </div>
+
+                    <div className="flex flex-col items-start gap-3">
+                      {problem.choices.map((choice) => {
+                        const isSelected = selectedIndex === choice.idx;
+                        const isAnswer = result?.answer_index === choice.idx;
+                        return (
+                          <button
+                            key={choice.id}
+                            disabled={Boolean(result)}
+                            onClick={() => setSelectedIndex(choice.idx)}
+                            className={`w-full rounded-md border px-5 py-3 text-left text-base ${
+                              isAnswer
+                                ? "border-pepper bg-pepper font-black text-white"
+                                : isSelected
+                                  ? "border-pepper bg-ash font-black"
+                                  : "border-smoke bg-white hover:bg-paper"
+                            }`}
+                          >
+                            {choice.idx}. {choice.content}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <Stat label="정답률" value="42%" />
+                      <Stat label="평균 풀이" value="4:18" />
+                      <Stat label="누적 풀이" value="1,284명" />
+                    </div>
+
+                    {result && (
+                      <div className="rounded-md border border-pepper p-5">
+                        <p className="text-xl font-black">{result.is_correct ? "정답입니다." : "오답입니다."}</p>
+                        <p className="mt-2 text-sm">
+                          선택한 답 {result.selected_index}번 / 정답 {result.answer_index}번
+                        </p>
+                        <p className="mt-3 whitespace-pre-line text-base leading-7">
+                          {result.explanation || "해설 데이터는 아직 준비 중입니다."}
+                        </p>
+                      </div>
+                    )}
+
+                    {error && <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">{error}</p>}
+
+                    <button
+                      disabled={submitting || Boolean(result)}
+                      onClick={handleSubmit}
+                      className="min-h-12 w-full rounded-md bg-pepper px-5 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
+                    >
+                      {submitting ? "제출 중..." : result ? "제출 완료" : "정답 제출하기"}
+                    </button>
                   </div>
                 </div>
-              )}
 
-              <div className="mb-5 rounded-md border border-pepper p-5">
-                <p className="mb-3 text-sm font-black">[문제] {problem.number}번</p>
-                <p className="whitespace-pre-line leading-7">{problem.question_text}</p>
-              </div>
+                <div className="min-w-0 space-y-5 2xl:sticky 2xl:top-8">
+                  <div className="rounded-md border border-pepper p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <p className="text-sm font-black">타이머</p>
+                      <button
+                        type="button"
+                        onClick={() => setRemainingSec(timerLimitSec)}
+                        className="h-9 rounded-md border border-smoke px-3 text-xs font-black hover:bg-paper"
+                      >
+                        다시 시작
+                      </button>
+                    </div>
+                    <p className={`text-4xl font-black ${timerExpired ? "text-[#9b3d2e]" : "text-pepper"}`}>
+                      {formatTimer(remainingSec)}
+                    </p>
+                    <div className="mt-4 h-2 rounded-full bg-ash">
+                      <div className="h-2 rounded-full bg-pepper" style={{ width: `${timerPercent}%` }} />
+                    </div>
+                    {timerExpired && <p className="mt-3 text-xs font-black text-[#9b3d2e]">제한 시간이 끝났어요.</p>}
+                  </div>
 
-              <div className="mb-6 space-y-3">
-                {problem.choices.map((choice) => {
-                  const isSelected = selectedIndex === choice.idx;
-                  const isAnswer = result?.answer_index === choice.idx;
-                  return (
-                    <button
-                      key={choice.id}
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
+                    <textarea
+                      value={reasoning}
                       disabled={Boolean(result)}
-                      onClick={() => setSelectedIndex(choice.idx)}
-                      className={`w-full rounded-md border px-5 py-3 text-left text-sm ${
-                        isAnswer
-                          ? "border-pepper bg-pepper font-black text-white"
-                          : isSelected
-                            ? "border-pepper bg-ash font-black"
-                            : "border-smoke bg-white hover:bg-paper"
-                      }`}
-                    >
-                      {choice.idx}. {choice.content}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <label className="mb-6 block">
-                <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
-                <textarea
-                  value={reasoning}
-                  disabled={Boolean(result)}
-                  onChange={(event) => setReasoning(event.target.value)}
-                  className="min-h-28 w-full rounded-md border border-smoke p-4 leading-7"
-                  placeholder="왜 이 답을 골랐는지 먼저 적어보세요."
-                />
-              </label>
-
-              {error && <p className="mb-4 rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">{error}</p>}
-
-              {result && (
-                <div className="mb-6 rounded-md border border-pepper p-5">
-                  <p className="text-xl font-black">{result.is_correct ? "정답입니다." : "오답입니다."}</p>
-                  <p className="mt-2 text-sm">
-                    선택한 답 {result.selected_index}번 / 정답 {result.answer_index}번
-                  </p>
-                  <p className="mt-3 whitespace-pre-line text-sm leading-7">
-                    {result.explanation || "해설 데이터는 아직 준비 중입니다."}
-                  </p>
+                      onChange={(event) => setReasoning(event.target.value)}
+                      className="min-h-36 w-full rounded-md border border-smoke p-4 text-base leading-7"
+                      placeholder="왜 이 답을 골랐는지 먼저 적어보세요."
+                    />
+                  </label>
                 </div>
-              )}
-
-              <div className="grid gap-3 md:grid-cols-[repeat(3,minmax(0,1fr))_minmax(160px,1fr)]">
-                <Stat label="정답률" value="42%" />
-                <Stat label="평균 풀이" value="4:18" />
-                <Stat label="누적 풀이" value="1,284명" />
-                <button
-                  disabled={submitting || Boolean(result)}
-                  onClick={handleSubmit}
-                  className="h-full min-h-12 rounded-md bg-pepper text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
-                >
-                  {submitting ? "제출 중..." : result ? "제출 완료" : "정답 제출하기"}
-                </button>
               </div>
             </>
           )}

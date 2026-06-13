@@ -84,14 +84,14 @@ export default function BoardPage({ page, setPage }) {
 
   return (
     <Shell page={page} setPage={setPage}>
-      <div className="space-y-7 px-5 py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[1040px] space-y-7 px-3 py-6 lg:px-7 lg:py-8">
         <Card className="border-pepper p-7">
-          <div className="mb-8 flex items-start justify-between gap-4">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="mb-4 text-sm font-black">문제별 추론 게시판</p>
               <h2 className="text-3xl font-black">오늘의 문제를 푼 사람들의 생각</h2>
             </div>
-            <button onClick={() => setPage("daily")} className="h-11 rounded-md border border-smoke px-5 text-sm font-black hover:bg-paper">
+            <button onClick={() => setPage("daily")} className="h-11 w-fit rounded-md border border-smoke px-5 text-sm font-black hover:bg-paper">
               오늘의 문제
             </button>
           </div>
@@ -109,13 +109,13 @@ export default function BoardPage({ page, setPage }) {
           )}
 
           {!loading && problem && (
-            <div className="rounded-md border border-smoke p-5">
+            <div className="mx-auto w-fit max-w-full rounded-md border border-smoke p-5">
               <div className="mb-4 flex flex-wrap gap-3">
                 <span className="rounded-md bg-ash px-4 py-2 text-xs font-black">{areaLabels[problem.area]}</span>
                 <span className="rounded-md bg-ash px-4 py-2 text-xs font-black">{problem.year}학년도</span>
                 <span className="rounded-md bg-ash px-4 py-2 text-xs font-black">{problem.number}번</span>
               </div>
-              <p className="whitespace-pre-line text-lg font-black leading-8">{problem.question_text}</p>
+              <p className="whitespace-pre-line break-keep text-base font-black leading-7">{problem.question_text}</p>
             </div>
           )}
         </Card>
@@ -126,7 +126,7 @@ export default function BoardPage({ page, setPage }) {
             {!board?.posts?.length && !loading ? (
               <p className="rounded-md border border-smoke p-5 text-sm font-black">아직 등록된 추론 게시글이 없어요.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="mx-auto max-w-[860px] space-y-4">
                 {board?.posts.map((post) => (
                   <article key={post.id} className="rounded-md border border-smoke p-5">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
