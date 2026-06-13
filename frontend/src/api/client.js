@@ -90,6 +90,13 @@ export function fetchProblemBoard(problemId) {
   return request(`/problems/${problemId}/board`);
 }
 
+export function createBoardComment({ problemId, postId, content }) {
+  return request(`/problems/${problemId}/board/posts/${postId}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
 export function fetchMyPosts() {
   return request("/me/posts");
 }

@@ -1,4 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class BoardCommentCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class BoardCommentResponse(BaseModel):
+    id: int
+    post_id: int
+    user_id: int
+    nickname: str
+    content: str
+    created_at: str
 
 
 class BoardProblemResponse(BaseModel):
@@ -17,6 +30,7 @@ class BoardPostResponse(BaseModel):
     selected_index: int
     is_correct: bool
     created_at: str
+    comments: list[BoardCommentResponse]
 
 
 class ProblemBoardResponse(BaseModel):

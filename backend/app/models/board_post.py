@@ -25,3 +25,4 @@ class BoardPost(Base):
 
     problem = relationship("Problem", back_populates="board_posts")
     user = relationship("User", back_populates="board_posts")
+    comments = relationship("BoardComment", back_populates="post", cascade="all, delete-orphan", order_by="BoardComment.created_at")

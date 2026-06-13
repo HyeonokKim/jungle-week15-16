@@ -28,5 +28,6 @@ class User(Base):
     attempts = relationship("Attempt", back_populates="user", cascade="all, delete-orphan")
     daily_assignments = relationship("UserDaily", back_populates="user", cascade="all, delete-orphan")
     board_posts = relationship("BoardPost", back_populates="user", cascade="all, delete-orphan")
+    board_comments = relationship("BoardComment", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan", uselist=False)
     review_queue_items = relationship("ReviewQueue", back_populates="user", cascade="all, delete-orphan")

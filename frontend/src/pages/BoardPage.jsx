@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { fetchDailyProblem, fetchProblemBoard } from "../api/client";
+import { createBoardComment, fetchDailyProblem, fetchProblemBoard } from "../api/client";
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 
@@ -11,8 +11,11 @@ const areaLabels = {
 
 export default function BoardPage({ page, setPage }) {
   const [board, setBoard] = useState(null);
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [commentSubmittingId, setCommentSubmittingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [commentErrors, setCommentErrors] = useState({});
 
   useEffect(() => {
     let ignore = false;
@@ -45,6 +48,39 @@ export default function BoardPage({ page, setPage }) {
   }, []);
 
   const problem = board?.problem;
+
+  async function handleCommentSubmit(postId) {
+    const content = commentDrafts[postId]?.trim() ?? "";
+    if (!content) {
+      setCommentErrors((current) => ({ ...current, [postId]: "댓글 내용을 입력해주세요." }));
+      return;
+    }
+    if (!problem) {
+      return;
+    }
+
+    try {
+      setCommentSubmittingId(postId);
+      const comment = await createBoardComment({ problemId: problem.id, postId, content });
+      setBoard((current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          posts: current.posts.map((post) =>
+            post.id === postId ? { ...post, comments: [...(post.comments ?? []), comment] } : post
+          ),
+        };
+      });
+      setCommentDrafts((current) => ({ ...current, [postId]: "" }));
+      setCommentErrors((current) => ({ ...current, [postId]: "" }));
+    } catch (err) {
+      setCommentErrors((current) => ({ ...current, [postId]: err.message }));
+    } finally {
+      setCommentSubmittingId(null);
+    }
+  }
 
   return (
     <Shell page={page} setPage={setPage}>
@@ -105,7 +141,46 @@ export default function BoardPage({ page, setPage }) {
                         </span>
                       </div>
                     </div>
-                    <p className="whitespace-pre-line leading-7">{post.content}</p>
+                    <p className="whitespace-pre-line break-keep text-base leading-7">{post.content}</p>
+                    <div className="mt-5 border-t border-ash pt-5">
+                      <h3 className="mb-3 text-sm font-black">댓글</h3>
+                      {post.comments?.length ? (
+                        <div className="mb-4 space-y-3">
+                          {post.comments.map((comment) => (
+                            <div key={comment.id} className="rounded-md bg-paper px-4 py-3">
+                              <div className="mb-2 flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-black">{comment.nickname}</p>
+                                <p className="text-xs text-[#666]">{new Date(comment.created_at).toLocaleString("ko-KR")}</p>
+                              </div>
+                              <p className="whitespace-pre-line break-keep text-sm leading-6">{comment.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mb-4 rounded-md bg-paper px-4 py-3 text-sm font-black text-[#666]">아직 댓글이 없어요.</p>
+                      )}
+                      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px]">
+                        <textarea
+                          value={commentDrafts[post.id] ?? ""}
+                          onChange={(event) => setCommentDrafts((current) => ({ ...current, [post.id]: event.target.value }))}
+                          className="min-h-20 w-full rounded-md border border-smoke p-3 text-sm leading-6"
+                          placeholder="이 추론에 대한 댓글을 남겨보세요."
+                        />
+                        <button
+                          type="button"
+                          disabled={commentSubmittingId === post.id}
+                          onClick={() => handleCommentSubmit(post.id)}
+                          className="min-h-11 rounded-md bg-pepper px-4 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
+                        >
+                          {commentSubmittingId === post.id ? "등록 중..." : "댓글 등록"}
+                        </button>
+                      </div>
+                      {commentErrors[post.id] && (
+                        <p className="mt-3 rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">
+                          {commentErrors[post.id]}
+                        </p>
+                      )}
+                    </div>
                   </article>
                 ))}
               </div>
