@@ -235,22 +235,22 @@ export default function DailyPage({ page, setPage }) {
                 ))}
               </div>
 
-              <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(560px,1fr)_minmax(320px,380px)] 2xl:items-start">
-                <div className="min-w-0">
-                  <div className="w-fit max-w-full space-y-5">
+              <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,auto)_minmax(320px,380px)] xl:items-start">
+                <div className="order-2 min-w-0 xl:order-1">
+                  <div className="inline-grid w-fit max-w-full min-w-0 grid-cols-[minmax(0,auto)] gap-5">
                     {problem.passage && (
-                      <div className="w-full rounded-md border border-pepper p-4 sm:p-5">
+                      <div className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
                         <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
                         <p className="whitespace-pre-line break-keep text-base leading-7">{problem.passage}</p>
                       </div>
                     )}
 
-                    <div className="w-full rounded-md border border-pepper p-4 sm:p-5">
+                    <div className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
                       <p className="mb-3 text-sm font-black">[문제] {problem.number}번</p>
                       <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
                     </div>
 
-                    <div className="flex flex-col items-start gap-3">
+                    <div className="grid w-full gap-3">
                       {problem.choices.map((choice) => {
                         const isSelected = selectedIndex === choice.idx;
                         const isAnswer = result?.answer_index === choice.idx;
@@ -273,7 +273,7 @@ export default function DailyPage({ page, setPage }) {
                       })}
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid w-full gap-3 sm:grid-cols-3">
                       <Stat label="정답률" value="42%" />
                       <Stat label="평균 풀이" value="4:18" />
                       <Stat label="누적 풀이" value="1,284명" />
@@ -291,6 +291,17 @@ export default function DailyPage({ page, setPage }) {
                       </div>
                     )}
 
+                    <label className="block w-full">
+                      <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
+                      <textarea
+                        value={reasoning}
+                        disabled={Boolean(result)}
+                        onChange={(event) => setReasoning(event.target.value)}
+                        className="min-h-36 w-full rounded-md border border-smoke p-4 text-base leading-7"
+                        placeholder="왜 이 답을 골랐는지 먼저 적어보세요."
+                      />
+                    </label>
+
                     {error && <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">{error}</p>}
 
                     <button
@@ -303,7 +314,7 @@ export default function DailyPage({ page, setPage }) {
                   </div>
                 </div>
 
-                <div className="min-w-0 space-y-5 2xl:sticky 2xl:top-8">
+                <div className="order-1 min-w-0 space-y-5 xl:sticky xl:top-8 xl:order-2">
                   <div className="rounded-md border border-pepper p-5">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <p className="text-sm font-black">타이머</p>
@@ -323,17 +334,6 @@ export default function DailyPage({ page, setPage }) {
                     </div>
                     {timerExpired && <p className="mt-3 text-xs font-black text-[#9b3d2e]">제한 시간이 끝났어요.</p>}
                   </div>
-
-                  <label className="block">
-                    <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
-                    <textarea
-                      value={reasoning}
-                      disabled={Boolean(result)}
-                      onChange={(event) => setReasoning(event.target.value)}
-                      className="min-h-36 w-full rounded-md border border-smoke p-4 text-base leading-7"
-                      placeholder="왜 이 답을 골랐는지 먼저 적어보세요."
-                    />
-                  </label>
                 </div>
               </div>
             </>
