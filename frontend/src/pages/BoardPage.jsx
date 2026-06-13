@@ -53,10 +53,10 @@ export default function BoardPage({ page, setPage }) {
           <div className="mb-8 flex items-start justify-between gap-4">
             <div>
               <p className="mb-4 text-sm font-black">문제별 추론 게시판</p>
-              <h2 className="text-3xl font-black">오늘 문제를 푼 사람들의 생각</h2>
+              <h2 className="text-3xl font-black">오늘의 문제를 푼 사람들의 생각</h2>
             </div>
             <button onClick={() => setPage("daily")} className="h-11 rounded-md border border-smoke px-5 text-sm font-black hover:bg-paper">
-              오늘 문제
+              오늘의 문제
             </button>
           </div>
 

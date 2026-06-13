@@ -1,6 +1,6 @@
 export const navItems = [
   ["login", "로그인"],
-  ["daily", "오늘 문제"],
+  ["daily", "오늘의 문제"],
   ["board", "풀이 현황"],
   ["mypage", "마이 페이지"],
 ];
