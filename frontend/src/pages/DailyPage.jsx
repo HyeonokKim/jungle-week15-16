@@ -237,7 +237,7 @@ export default function DailyPage({ page, setPage }) {
 
               <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,auto)_minmax(320px,380px)] xl:items-start">
                 <div className="order-2 min-w-0 xl:order-1">
-                  <div className="inline-grid w-fit max-w-full min-w-0 grid-cols-[minmax(0,auto)] gap-5">
+                  <div className="inline-grid w-fit max-w-full min-w-0 grid-cols-[minmax(0,auto)] justify-items-start gap-5">
                     {problem.passage && (
                       <div className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
                         <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
@@ -250,7 +250,7 @@ export default function DailyPage({ page, setPage }) {
                       <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
                     </div>
 
-                    <div className="grid w-full gap-3">
+                    <div className="grid w-fit max-w-full justify-items-start gap-3">
                       {problem.choices.map((choice) => {
                         const isSelected = selectedIndex === choice.idx;
                         const isAnswer = result?.answer_index === choice.idx;
@@ -259,7 +259,7 @@ export default function DailyPage({ page, setPage }) {
                             key={choice.id}
                             disabled={Boolean(result)}
                             onClick={() => setSelectedIndex(choice.idx)}
-                            className={`w-full rounded-md border px-5 py-3 text-left text-base ${
+                            className={`w-fit max-w-full rounded-md border px-5 py-3 text-left text-base ${
                               isAnswer
                                 ? "border-pepper bg-pepper font-black text-white"
                                 : isSelected
