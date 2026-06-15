@@ -1,7 +1,116 @@
 [
   {
+    "year": 2022,
+    "area": "reading_comprehension",
+    "status": "pending_ocr",
+    "path": null,
+    "problem_pdf": "data/reading_comprehension/2022_reading.pdf",
+    "answer_pdf": "data/reading_comprehension/2022_reading_answers.pdf",
+    "problem_pages": 15,
+    "answer_pages": 2,
+    "expected_problem_count": 30,
+    "extracted_problem_count": 0,
+    "extracted_answer_count": 30,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": [
+      "problem_pdf_text_empty_and_no_ocr_override",
+      "reading_passage_groups_not_found"
+    ]
+  },
+  {
+    "year": 2022,
+    "area": "reasoning_argumentation",
+    "status": "pending_ocr",
+    "path": null,
+    "problem_pdf": "data/reasoning_argumentation/2022_reasoning.pdf",
+    "answer_pdf": "data/reasoning_argumentation/2022_reasoning_answers.pdf",
+    "problem_pages": 20,
+    "answer_pages": 2,
+    "expected_problem_count": 40,
+    "extracted_problem_count": 40,
+    "extracted_answer_count": 40,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": [
+      "problem_pdf_text_empty_and_no_ocr_override",
+      "expected_40_problems_found_0"
+    ]
+  },
+  {
+    "year": 2023,
+    "area": "reading_comprehension",
+    "status": "pending_ocr",
+    "path": null,
+    "problem_pdf": "data/reading_comprehension/2023_reading.pdf",
+    "answer_pdf": "data/reading_comprehension/2023_reading_answers.pdf",
+    "problem_pages": 15,
+    "answer_pages": 2,
+    "expected_problem_count": 30,
+    "extracted_problem_count": 0,
+    "extracted_answer_count": 30,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": [
+      "problem_pdf_text_empty_and_no_ocr_override",
+      "reading_passage_groups_not_found"
+    ]
+  },
+  {
+    "year": 2023,
+    "area": "reasoning_argumentation",
+    "status": "pending_ocr",
+    "path": null,
+    "problem_pdf": "data/reasoning_argumentation/2023_reasoning.pdf",
+    "answer_pdf": "data/reasoning_argumentation/2023_reasoning_answers.pdf",
+    "problem_pages": 20,
+    "answer_pages": 2,
+    "expected_problem_count": 40,
+    "extracted_problem_count": 40,
+    "extracted_answer_count": 40,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": [
+      "problem_pdf_text_empty_and_no_ocr_override",
+      "expected_40_problems_found_0"
+    ]
+  },
+  {
+    "year": 2024,
+    "area": "reading_comprehension",
+    "status": "ready",
+    "path": "data/parsed/2024_reading_comprehension.json",
+    "problem_pdf": "data/reading_comprehension/2024_reading.pdf",
+    "answer_pdf": "data/reading_comprehension/2024_reading_answers.pdf",
+    "problem_pages": 15,
+    "answer_pages": 2,
+    "expected_problem_count": 30,
+    "extracted_problem_count": 30,
+    "extracted_answer_count": 30,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": []
+  },
+  {
+    "year": 2024,
+    "area": "reasoning_argumentation",
+    "status": "ready",
+    "path": "data/parsed/2024_reasoning_argumentation.json",
+    "problem_pdf": "data/reasoning_argumentation/2024_reasoning.pdf",
+    "answer_pdf": "data/reasoning_argumentation/2024_reasoning_answers.pdf",
+    "problem_pages": 20,
+    "answer_pages": 2,
+    "expected_problem_count": 40,
+    "extracted_problem_count": 40,
+    "extracted_answer_count": 40,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": []
+  },
+  {
     "year": 2025,
     "area": "reading_comprehension",
+    "status": "ready",
     "path": "data/parsed/2025_reading_comprehension.json",
     "problem_pdf": "data/reading_comprehension/2025_reading.pdf",
     "answer_pdf": "data/reading_comprehension/2025_reading_answers.pdf",
@@ -9,14 +118,31 @@
     "answer_pages": 2,
     "expected_problem_count": 30,
     "extracted_problem_count": 30,
-    "extracted_answer_count": 0,
-    "extraction_warnings": [
-      "expected_30_answers_found_0"
-    ]
+    "extracted_answer_count": 30,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": []
+  },
+  {
+    "year": 2025,
+    "area": "reasoning_argumentation",
+    "status": "ready",
+    "path": "data/parsed/2025_reasoning_argumentation.json",
+    "problem_pdf": "data/reasoning_argumentation/2025_reasoning.pdf",
+    "answer_pdf": "data/reasoning_argumentation/2025_reasoning_answers.pdf",
+    "problem_pages": 20,
+    "answer_pages": 2,
+    "expected_problem_count": 40,
+    "extracted_problem_count": 40,
+    "extracted_answer_count": 40,
+    "problem_text_source": "pdf_text",
+    "answer_source": "override",
+    "extraction_warnings": []
   },
   {
     "year": 2026,
     "area": "reading_comprehension",
+    "status": "ready",
     "path": "data/parsed/2026_reading_comprehension.json",
     "problem_pdf": "data/reading_comprehension/2026_reading.pdf",
     "answer_pdf": "data/reading_comprehension/2026_reading_answers.pdf",
@@ -25,26 +151,14 @@
     "expected_problem_count": 30,
     "extracted_problem_count": 30,
     "extracted_answer_count": 30,
+    "problem_text_source": "pdf_text",
+    "answer_source": "pdf_text",
     "extraction_warnings": []
-  },
-  {
-    "year": 2025,
-    "area": "reasoning_argumentation",
-    "path": "data/parsed/2025_reasoning_argumentation.json",
-    "problem_pdf": "data/reasoning_argumentation/2025_reasoning.pdf",
-    "answer_pdf": "data/reasoning_argumentation/2025_reasoning_answers.pdf",
-    "problem_pages": 20,
-    "answer_pages": 2,
-    "expected_problem_count": 40,
-    "extracted_problem_count": 40,
-    "extracted_answer_count": 0,
-    "extraction_warnings": [
-      "expected_40_answers_found_0"
-    ]
   },
   {
     "year": 2026,
     "area": "reasoning_argumentation",
+    "status": "ready",
     "path": "data/parsed/2026_reasoning_argumentation.json",
     "problem_pdf": "data/reasoning_argumentation/2026_reasoning.pdf",
     "answer_pdf": "data/reasoning_argumentation/2026_reasoning_answers.pdf",
@@ -53,6 +167,8 @@
     "expected_problem_count": 40,
     "extracted_problem_count": 40,
     "extracted_answer_count": 40,
+    "problem_text_source": "pdf_text",
+    "answer_source": "pdf_text",
     "extraction_warnings": []
   }
 ]

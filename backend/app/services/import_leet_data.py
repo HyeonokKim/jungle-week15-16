@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,35 @@ class ImportSummary:
 
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def discover_parsed_years(parsed_dir: Path, areas: list[ProblemArea]) -> list[int]:
+    """Years whose parsed JSON exists and validates for every requested area.
+
+    Lets a fresh `python -m ...import_leet_data` load every ready year under
+    data/parsed without hardcoding a year list. Years that are only staged
+    (e.g. scanned booklets still awaiting an OCR override) are skipped with a
+    notice rather than aborting the whole import.
+    """
+    years: set[int] = set()
+    for path in parsed_dir.glob("*.json"):
+        match = re.fullmatch(r"(\d{4})_(?:reading_comprehension|reasoning_argumentation)", path.stem)
+        if match:
+            years.add(int(match.group(1)))
+
+    importable: list[int] = []
+    for year in sorted(years):
+        paths = [parsed_dir / f"{year}_{area.value}.json" for area in areas]
+        if not all(path.exists() for path in paths):
+            continue
+        try:
+            for path in paths:
+                validate_payload(path, load_json(path))
+        except (ValueError, KeyError) as exc:
+            print(f"skipping {year}: not importable yet ({exc.__class__.__name__})")
+            continue
+        importable.append(year)
+    return importable
 
 
 def collect_paths(parsed_dir: Path, years: list[int], areas: list[ProblemArea]) -> list[Path]:
@@ -234,8 +264,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    years = args.years or [2026]
     areas = [ProblemArea(area) for area in (args.areas or [area.value for area in ProblemArea])]
+    years = args.years or discover_parsed_years(args.parsed_dir, areas)
+    if not years:
+        raise SystemExit(f"no parsed data found under {args.parsed_dir}")
     paths = collect_paths(args.parsed_dir, years, areas)
     payloads = [load_json(path) for path in paths]
     summaries = [validate_payload(path, payload) for path, payload in zip(paths, payloads)]

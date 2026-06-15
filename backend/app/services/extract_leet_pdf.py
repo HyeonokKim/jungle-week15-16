@@ -13,6 +13,17 @@ from pypdf import PdfReader
 ANSWER_LABELS = {"①": 1, "②": 2, "③": 3, "④": 4, "⑤": 5}
 ANSWER_LABEL_BY_INDEX = {value: key for key, value in ANSWER_LABELS.items()}
 
+# Emitted when a problem booklet is an image-only scan with no OCR override yet.
+# Such a source is "staged" (PDF + answer key present) but not parseable, so the
+# extractor records it in the manifest without writing a half-empty JSON file.
+PENDING_OCR_WARNING = "problem_pdf_text_empty_and_no_ocr_override"
+
+# area dir name -> (problem/answer pdf filename stem, expected problem count)
+AREA_SPECS: dict[str, tuple[str, int]] = {
+    "reading_comprehension": ("reading", 30),
+    "reasoning_argumentation": ("reasoning", 40),
+}
+
 
 @dataclass(frozen=True)
 class SourceSet:
@@ -21,6 +32,9 @@ class SourceSet:
     problem_pdf: Path
     answer_pdf: Path
     expected_count: int
+    # Optional manual overrides for scanned (image-only) PDFs that pypdf cannot read.
+    answer_override: Path | None = None  # data/answers/{year}_{area}.json
+    ocr_text: Path | None = None  # data/ocr/{year}_{area}.txt
 
 
 def extract_pdf_text(path: Path) -> tuple[str, int]:
@@ -60,6 +74,12 @@ def parse_answers(answer_text: str, variant: str = "홀수형") -> dict[int, int
     return answers
 
 
+def load_answer_override(path: Path) -> dict[int, int]:
+    """Load a manually transcribed answer key for image-only answer PDFs."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {int(number): int(index) for number, index in data["answers"].items()}
+
+
 def find_reading_groups(text: str) -> list[tuple[int, int, str]]:
     matches = list(re.finditer(r"\[(\d{1,2})~(\d{1,2})\]\s*다음\s*글을\s*읽고\s*물음에\s*답하시오\.?", text))
     groups: list[tuple[int, int, str]] = []
@@ -94,20 +114,45 @@ def split_expected_numbered_blocks(text: str, first: int, last: int) -> dict[int
     return blocks
 
 
+CHOICE_LABELS = ["①", "②", "③", "④", "⑤"]
+
+
+def locate_trailing_choice_markers(block: str) -> list[int] | None:
+    """Return the positions of the final ①②③④⑤ run in ``block``.
+
+    LEET stems often contain stray circled numbers (e.g. references to ㉠㉡ or
+    to the options themselves), so a naive split over every ①..⑤ over-counts the
+    choices. The real choices are always the trailing run, so we walk backwards
+    from the last ⑤ and find each preceding label before it.
+    """
+    positions: list[int] = []
+    search_end = len(block)
+    for label in reversed(CHOICE_LABELS):
+        index = block.rfind(label, 0, search_end)
+        if index == -1:
+            return None
+        positions.append(index)
+        search_end = index
+    positions.reverse()
+    return positions
+
+
 def split_problem_and_choices(block: str, number: int) -> tuple[str, list[dict[str, Any]], list[str]]:
     warnings: list[str] = []
     block = re.sub(rf"^{number}\.\s*", "", block).strip()
-    parts = re.split(r"([①②③④⑤])", block)
-    if len(parts) < 3:
-        warnings.append("choice_markers_not_found")
+
+    positions = locate_trailing_choice_markers(block)
+    if positions is None:
+        found = sum(1 for label in CHOICE_LABELS if label in block)
+        warnings.append(f"expected_5_choices_found_{found}")
         return block, [], warnings
 
-    question_text = parts[0].strip()
+    question_text = block[: positions[0]].strip()
+    bounds = positions + [len(block)]
     choices: list[dict[str, Any]] = []
-    for index in range(1, len(parts), 2):
-        label = parts[index]
-        content = parts[index + 1].strip() if index + 1 < len(parts) else ""
-        content = remove_exam_footer(content)
+    for index, label in enumerate(CHOICE_LABELS):
+        start = bounds[index] + len(label)
+        content = remove_exam_footer(block[start : bounds[index + 1]].strip())
         choices.append(
             {
                 "idx": ANSWER_LABELS[label],
@@ -115,21 +160,25 @@ def split_problem_and_choices(block: str, number: int) -> tuple[str, list[dict[s
                 "content": content,
             }
         )
-
-    if len(choices) != 5:
-        warnings.append(f"expected_5_choices_found_{len(choices)}")
     return question_text, choices, warnings
 
 
 def remove_exam_footer(text: str) -> str:
+    # Page footers/headers bleed into the last choice of each page. Spacing in the
+    # PDF text layer varies by year (some have no spaces at all), so every marker
+    # tolerates optional whitespace. A leading page number glued to the choice is
+    # stripped together with the footer it precedes.
     footer_patterns = [
-        r"\s*20\d{2}학년도\s+법학적성시험\b",
-        r"\s*\d+\s+\d+\s+20\d{2}학년도\s+법학적성시험\b",
-        r"\s*\d+\s*(?:언어이해|언\s*어\s*이\s*해|추리논증|추\s*리\s*논\s*증)\s+\d+\s+\d+\s+홀수형\b",
-        r"\s*\d+\s+\d+\s+\d+\s+홀수형\s*(?:언어이해|추리논증)\b",
-        r"\s*\d+\s+\d+\s+홀수형\s*\d+\s*(?:언어이해|추리논증)\b",
-        r"\s*\d+\s+\d+\s+홀수형(?:언어이해|추리논증)\b",
-        r"\s*\*\s*확인\s+사항\b",
+        # Page footer that bleeds in mid-page: "\n420\n홀수형4 추 리 논 증" or
+        # "\n3추리논증\n3 20\n홀수형". Anchored on a line-leading page number that is
+        # immediately followed by the "20"/area-name footer and a nearby "홀수형".
+        r"\n\s*\d+\s*(?:20(?!\d)|추\s*리\s*논\s*증|언\s*어\s*이\s*해)(?=[\s\S]{0,30}홀수형)",
+        r"\s*\d*\s*20\d{2}\s*학년도\s*법학적성시험",
+        r"\s*법학적성시험",
+        r"\s*제\s*[12]\s*교시",
+        r"\s*성명\s*수험번호",
+        r"\s*홀수형",
+        r"\s*\*\s*확인\s*사항",
     ]
     earliest = len(text)
     for pattern in footer_patterns:
@@ -217,14 +266,26 @@ def parse_reasoning(source: SourceSet, text: str, answers: dict[int, int]) -> tu
 
 
 def parse_source(source: SourceSet) -> dict[str, Any]:
+    warnings: list[str] = []
+
     problem_text, problem_pages = extract_pdf_text(source.problem_pdf)
-    answer_text, answer_pages = extract_pdf_text(source.answer_pdf)
     problem_text = compact_text(problem_text)
+    problem_text_source = "pdf_text"
+    if not problem_text and source.ocr_text and source.ocr_text.exists():
+        problem_text = compact_text(source.ocr_text.read_text(encoding="utf-8"))
+        problem_text_source = "ocr_text"
+    elif not problem_text:
+        warnings.append(PENDING_OCR_WARNING)
+
+    answer_text, answer_pages = extract_pdf_text(source.answer_pdf)
     answer_text = compact_text(answer_text)
     answers = parse_answers(answer_text)
+    answer_source = "pdf_text"
+    if len(answers) < source.expected_count and source.answer_override and source.answer_override.exists():
+        answers = load_answer_override(source.answer_override)
+        answer_source = "override"
 
     passages: list[dict[str, Any]] = []
-    warnings: list[str] = []
     if source.area == "reading_comprehension":
         passages, problems, parse_warnings = parse_reading(source, problem_text, answers)
         warnings.extend(parse_warnings)
@@ -246,6 +307,8 @@ def parse_source(source: SourceSet) -> dict[str, Any]:
             "expected_problem_count": source.expected_count,
             "extracted_problem_count": len(problems),
             "extracted_answer_count": len(answers),
+            "problem_text_source": problem_text_source,
+            "answer_source": answer_source,
             "extraction_warnings": warnings,
         },
         "exam": {
@@ -259,36 +322,35 @@ def parse_source(source: SourceSet) -> dict[str, Any]:
 
 
 def discover_sources(data_dir: Path) -> list[SourceSet]:
-    return [
-        SourceSet(
-            year=2025,
-            area="reading_comprehension",
-            problem_pdf=data_dir / "reading_comprehension" / "2025_reading.pdf",
-            answer_pdf=data_dir / "reading_comprehension" / "2025_reading_answers.pdf",
-            expected_count=30,
-        ),
-        SourceSet(
-            year=2026,
-            area="reading_comprehension",
-            problem_pdf=data_dir / "reading_comprehension" / "2026_reading.pdf",
-            answer_pdf=data_dir / "reading_comprehension" / "2026_reading_answers.pdf",
-            expected_count=30,
-        ),
-        SourceSet(
-            year=2025,
-            area="reasoning_argumentation",
-            problem_pdf=data_dir / "reasoning_argumentation" / "2025_reasoning.pdf",
-            answer_pdf=data_dir / "reasoning_argumentation" / "2025_reasoning_answers.pdf",
-            expected_count=40,
-        ),
-        SourceSet(
-            year=2026,
-            area="reasoning_argumentation",
-            problem_pdf=data_dir / "reasoning_argumentation" / "2026_reasoning.pdf",
-            answer_pdf=data_dir / "reasoning_argumentation" / "2026_reasoning_answers.pdf",
-            expected_count=40,
-        ),
-    ]
+    """Discover every {year}_{stem}.pdf problem booklet under each area directory.
+
+    New years only need their PDFs dropped into the area folders (plus a manual
+    answer override under data/answers when the answer PDF is image-only).
+    """
+    sources: list[SourceSet] = []
+    answers_dir = data_dir / "answers"
+    ocr_dir = data_dir / "ocr"
+    for area, (stem, expected_count) in AREA_SPECS.items():
+        area_dir = data_dir / area
+        if not area_dir.is_dir():
+            continue
+        for problem_pdf in area_dir.glob(f"*_{stem}.pdf"):
+            match = re.fullmatch(rf"(\d{{4}})_{stem}\.pdf", problem_pdf.name)
+            if not match:
+                continue
+            year = int(match.group(1))
+            sources.append(
+                SourceSet(
+                    year=year,
+                    area=area,
+                    problem_pdf=problem_pdf,
+                    answer_pdf=area_dir / f"{year}_{stem}_answers.pdf",
+                    expected_count=expected_count,
+                    answer_override=answers_dir / f"{year}_{area}.json",
+                    ocr_text=ocr_dir / f"{year}_{area}.txt",
+                )
+            )
+    return sorted(sources, key=lambda source: (source.year, source.area))
 
 
 def main() -> None:
@@ -301,13 +363,20 @@ def main() -> None:
     manifest: list[dict[str, Any]] = []
     for source in discover_sources(args.data_dir):
         parsed = parse_source(source)
+        pending = PENDING_OCR_WARNING in parsed["metadata"]["extraction_warnings"]
         out_path = args.out_dir / f"{source.year}_{source.area}.json"
-        out_path.write_text(json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8")
+        if pending:
+            # Scanned booklet awaiting an OCR override: keep it out of data/parsed
+            # so the importer does not see a half-empty file. Drop any stale output.
+            out_path.unlink(missing_ok=True)
+        else:
+            out_path.write_text(json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8")
         manifest.append(
             {
                 "year": source.year,
                 "area": source.area,
-                "path": str(out_path),
+                "status": "pending_ocr" if pending else "ready",
+                "path": None if pending else str(out_path),
                 **parsed["metadata"],
             }
         )

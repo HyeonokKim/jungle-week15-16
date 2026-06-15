@@ -66,15 +66,14 @@ def select_next_problem(db: Session, user: User, problem_scope: ProblemScope) ->
     if problem:
         return problem
 
-    fallback_statement = apply_problem_scope(
-        select(Problem)
-        .join(Exam)
-        .where(Problem.answer_index.is_not(None))
-        .order_by(Exam.year.desc(), Problem.number.asc())
-        .limit(1),
-        db,
+    fallback_statement = order_by_scope(
+        apply_problem_scope(
+            select(Problem).join(Exam).where(Problem.answer_index.is_not(None)),
+            db,
+            problem_scope,
+        ),
         problem_scope,
-    )
+    ).limit(1)
     problem = db.execute(fallback_statement).scalar_one_or_none()
     if not problem:
         raise LookupError("No importable problems found")
@@ -132,10 +131,8 @@ def find_unattempted_problem(
             .where(Attempt.user_id == user.id, Attempt.problem_id == Problem.id)
             .exists(),
         )
-        .order_by(Exam.year.desc(), Problem.number.asc())
-        .limit(1)
     )
-    statement = apply_problem_scope(statement, db, problem_scope)
+    statement = order_by_scope(apply_problem_scope(statement, db, problem_scope), problem_scope).limit(1)
     if exclude_daily_date:
         statement = statement.where(
             ~select(UserDaily.id)
@@ -147,6 +144,22 @@ def find_unattempted_problem(
             .exists()
         )
     return db.execute(statement).scalar_one_or_none()
+
+
+def order_by_scope(
+    statement: Select[tuple[Problem]],
+    problem_scope: ProblemScope,
+) -> Select[tuple[Problem]]:
+    """Ordering for problem selection.
+
+    `all_random` ("전체 회차 랜덤") draws uniformly across every year so older
+    rounds actually surface in the daily, instead of exhausting the latest year
+    first. The bounded scopes keep the latest-first progression within their
+    year window.
+    """
+    if problem_scope == ProblemScope.all_random:
+        return statement.order_by(func.random())
+    return statement.order_by(Exam.year.desc(), Problem.number.asc())
 
 
 def apply_problem_scope(

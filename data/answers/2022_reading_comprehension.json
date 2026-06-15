@@ -1,0 +1,11 @@
+{
+  "year": 2022,
+  "area": "reading_comprehension",
+  "variant": "홀수형",
+  "source": "manual OCR of data/reading_comprehension/2022_reading_answers.pdf (image-based answer key)",
+  "answers": {
+    "1": 3, "2": 5, "3": 5, "4": 4, "5": 1, "6": 2, "7": 1, "8": 4, "9": 3, "10": 3,
+    "11": 4, "12": 5, "13": 1, "14": 1, "15": 2, "16": 4, "17": 4, "18": 2, "19": 4, "20": 1,
+    "21": 5, "22": 5, "23": 3, "24": 3, "25": 2, "26": 2, "27": 5, "28": 5, "29": 3, "30": 2
+  }
+}
