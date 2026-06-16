@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   fetchDailyProblem,
+  fetchMyAttemptHistory,
   fetchMySettings,
   fetchMyStats,
   fetchPracticeProblem,
@@ -13,7 +14,6 @@ import Avatar from "../components/Avatar";
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 import Stat from "../components/Stat";
-import { recentSolved } from "../data/mockData";
 
 const areaLabels = {
   reading_comprehension: "언어이해",
@@ -32,8 +32,13 @@ function formatTimer(totalSeconds) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function formatAttemptLabel(attempt) {
+  const status = attempt.is_correct ? "정답" : "오답";
+  const mode = attempt.is_daily ? "데일리" : "연습";
+  return `[${status}] ${attempt.title} [${mode}]`;
+}
+
 export default function DailyPage({ page, setPage }) {
-  const problemContentRef = useRef(null);
   const [daily, setDaily] = useState(null);
   const [mode, setMode] = useState("daily");
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -44,9 +49,10 @@ export default function DailyPage({ page, setPage }) {
   const [aiExplanationLoading, setAiExplanationLoading] = useState(false);
   const [aiExplanationError, setAiExplanationError] = useState("");
   const [completedToday, setCompletedToday] = useState(false);
+  const [attemptHistory, setAttemptHistory] = useState([]);
+  const [attemptHistoryLoading, setAttemptHistoryLoading] = useState(true);
   const [timerLimitSec, setTimerLimitSec] = useState(180);
   const [remainingSec, setRemainingSec] = useState(180);
-  const [problemContentWidth, setProblemContentWidth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -91,6 +97,23 @@ export default function DailyPage({ page, setPage }) {
       }
     }
 
+    async function loadAttemptHistory() {
+      try {
+        const data = await fetchMyAttemptHistory();
+        if (!ignore) {
+          setAttemptHistory(data);
+        }
+      } catch {
+        if (!ignore) {
+          setAttemptHistory([]);
+        }
+      } finally {
+        if (!ignore) {
+          setAttemptHistoryLoading(false);
+        }
+      }
+    }
+
     async function loadMySettings() {
       try {
         const data = await fetchMySettings();
@@ -108,6 +131,7 @@ export default function DailyPage({ page, setPage }) {
 
     loadDailyProblem();
     loadMyStats();
+    loadAttemptHistory();
     loadMySettings();
     return () => {
       ignore = true;
@@ -139,6 +163,7 @@ export default function DailyPage({ page, setPage }) {
         setDaily((current) => current ? { ...current, completed: true } : current);
         fetchMyStats().then(setStats).catch(() => {});
       }
+      fetchMyAttemptHistory().then(setAttemptHistory).catch(() => {});
       setError("");
     } catch (err) {
       setError(err.message);
@@ -151,7 +176,6 @@ export default function DailyPage({ page, setPage }) {
   const areaLabel = problem ? areaLabels[problem.area] : "";
   const timerPercent = timerLimitSec > 0 ? (remainingSec / timerLimitSec) * 100 : 0;
   const timerExpired = remainingSec === 0;
-  const problemContentStyle = problemContentWidth ? { width: `${problemContentWidth}px` } : undefined;
   const similarityTag =
     mode === "practice" && typeof problem?.similarity_score === "number"
       ? `오늘 문제와 관련도 ${problem.similarity_score}%`
@@ -179,34 +203,6 @@ export default function DailyPage({ page, setPage }) {
 
     return () => window.clearInterval(timerId);
   }, [problem, remainingSec, result]);
-
-  useEffect(() => {
-    if (!problemContentRef.current || !problem) {
-      setProblemContentWidth(null);
-      return undefined;
-    }
-
-    const measureProblemContent = () => {
-      const blocks = problemContentRef.current?.querySelectorAll("[data-problem-content-block]") ?? [];
-      const nextWidth = Math.max(
-        ...Array.from(blocks).map((block) => block.getBoundingClientRect().width),
-        0,
-      );
-      setProblemContentWidth(nextWidth > 0 ? Math.ceil(nextWidth) : null);
-    };
-
-    measureProblemContent();
-
-    const resizeObserver = new ResizeObserver(measureProblemContent);
-    const blocks = problemContentRef.current.querySelectorAll("[data-problem-content-block]");
-    blocks.forEach((block) => resizeObserver.observe(block));
-    window.addEventListener("resize", measureProblemContent);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", measureProblemContent);
-    };
-  }, [problem]);
 
   async function loadPracticeProblem() {
     try {
@@ -252,12 +248,8 @@ export default function DailyPage({ page, setPage }) {
           <Card className="p-7">
             <div className="mb-8 flex items-center gap-5">
               <Avatar />
-              <div>
-                <p className="text-xl font-black">ifuril</p>
-                <p className="text-sm text-[#666]">level 4</p>
-                <div className="mt-4 h-2 w-32 rounded-full bg-ash">
-                  <div className="h-2 w-24 rounded-full bg-pepper" />
-                </div>
+              <div className="flex min-h-20 items-center">
+                <p className="text-xl font-black">{stats?.nickname ?? "ifuril"}</p>
               </div>
             </div>
             <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
@@ -271,16 +263,27 @@ export default function DailyPage({ page, setPage }) {
 
           <Card className="p-7">
             <h2 className="mb-7 text-lg font-black">날짜별 푼 문제</h2>
-            {recentSolved.map(([date, first, second], index) => (
-              <div key={date} className="mb-7 grid grid-cols-[18px_1fr] gap-3 last:mb-0">
-                <span className={`mt-1 h-3 w-3 rounded-full ${index === 0 ? "bg-pepper" : "border border-smoke bg-white"}`} />
-                <div>
-                  <p className="mb-3 text-xl font-black">{date}</p>
-                  <p className="mb-2 text-xs font-black">{first}</p>
-                  <p className="text-xs font-black">{second}</p>
+            {attemptHistoryLoading ? (
+              <p className="rounded-md border border-smoke p-4 text-sm font-black text-[#666]">풀이 기록을 불러오는 중...</p>
+            ) : attemptHistory.length === 0 ? (
+              <p className="rounded-md border border-smoke p-4 text-sm font-black text-[#666]">아직 제출한 문제가 없어요.</p>
+            ) : (
+              attemptHistory.map((day, index) => (
+                <div key={day.date} className="mb-7 grid grid-cols-[18px_1fr] gap-3 last:mb-0">
+                  <span className={`mt-1 h-3 w-3 rounded-full ${index === 0 ? "bg-pepper" : "border border-smoke bg-white"}`} />
+                  <div className="min-w-0">
+                    <p className="mb-3 text-xl font-black">{day.date}</p>
+                    <div className="space-y-2">
+                      {day.attempts.map((attempt) => (
+                        <p key={attempt.id} className="text-xs font-black leading-5">
+                          {formatAttemptLabel(attempt)}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </Card>
         </aside>
 
@@ -320,30 +323,26 @@ export default function DailyPage({ page, setPage }) {
                 ))}
               </div>
 
-              <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,auto)_minmax(320px,380px)] xl:items-start">
+              <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] xl:items-start">
                 <div className="order-2 min-w-0 xl:order-1">
                   <div
-                    ref={problemContentRef}
-                    className="inline-grid w-fit max-w-full min-w-0 grid-cols-[minmax(0,auto)] justify-items-start gap-5"
+                    className="grid w-full min-w-0 max-w-3xl gap-5"
                   >
                     {problem.passage && (
-                      <div data-problem-content-block className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
+                      <div className="min-w-0 rounded-md border border-pepper p-4 sm:p-5">
                         <p className="mb-3 text-sm font-black">[자료] 다음 글을 읽고 물음에 답하시오.</p>
-                        <p className="whitespace-pre-line break-keep text-base leading-7">{problem.passage}</p>
+                        <p className="leet-text text-base leading-7">{problem.passage}</p>
                       </div>
                     )}
 
                     <div
-                      data-problem-content-block
-                      className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5"
-                      style={problemContentStyle}
+                      className="min-w-0 rounded-md border border-pepper p-4 sm:p-5"
                     >
-                      <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
+                      <p className="leet-text text-base leading-7">{problem.question_text}</p>
                     </div>
 
                     <div
-                      className="grid w-full max-w-full gap-3"
-                      style={problemContentStyle}
+                      className="grid w-full min-w-0 gap-3"
                     >
                       {problem.choices.map((choice) => {
                         const isSelected = selectedIndex === choice.idx;
@@ -353,7 +352,7 @@ export default function DailyPage({ page, setPage }) {
                             key={choice.id}
                             disabled={Boolean(result)}
                             onClick={() => setSelectedIndex(choice.idx)}
-                            className={`w-full rounded-md border px-5 py-3 text-left text-base ${
+                            className={`leet-text w-full rounded-md border px-5 py-3 text-left text-base ${
                               isAnswer
                                 ? "border-pepper bg-pepper font-black text-white"
                                 : isSelected
@@ -367,26 +366,26 @@ export default function DailyPage({ page, setPage }) {
                       })}
                     </div>
 
-                    <div className="grid w-full gap-3 sm:grid-cols-3" style={problemContentStyle}>
+                    <div className="grid w-full gap-3 sm:grid-cols-3">
                       <Stat label="정답률" value="42%" />
                       <Stat label="평균 풀이" value="4:18" />
                       <Stat label="누적 풀이" value="1,284명" />
                     </div>
 
                     {result && (
-                      <div className="rounded-md border border-pepper p-5" style={problemContentStyle}>
+                      <div className="rounded-md border border-pepper p-5">
                         <p className="text-xl font-black">{result.is_correct ? "정답입니다." : "오답입니다."}</p>
                         <p className="mt-2 text-sm">
                           선택한 답 {result.selected_index}번 / 정답 {result.answer_index}번
                         </p>
-                        <p className="mt-3 whitespace-pre-line text-base leading-7">
-                          {result.explanation || "해설 데이터는 아직 준비 중입니다."}
-                        </p>
+                        {result.explanation && (
+                          <p className="leet-text mt-3 text-base leading-7">{result.explanation}</p>
+                        )}
                       </div>
                     )}
 
                     {result && (
-                      <div className="rounded-md border border-pepper p-5" style={problemContentStyle}>
+                      <div className="rounded-md border border-pepper p-5">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-xl font-black">AI 해설</p>
@@ -427,24 +426,24 @@ export default function DailyPage({ page, setPage }) {
                             </div>
 
                             {aiExplanation.final_explanation && (
-                              <p className="whitespace-pre-line text-base leading-7">{aiExplanation.final_explanation}</p>
+                              <p className="leet-text text-base leading-7">{aiExplanation.final_explanation}</p>
                             )}
                             {aiExplanation.solution_summary && (
                               <div>
                                 <p className="mb-2 text-sm font-black">핵심 논리</p>
-                                <p className="whitespace-pre-line text-base leading-7">{aiExplanation.solution_summary}</p>
+                                <p className="leet-text text-base leading-7">{aiExplanation.solution_summary}</p>
                               </div>
                             )}
                             {aiExplanation.user_reasoning_review && (
                               <div>
                                 <p className="mb-2 text-sm font-black">내 추론 진단</p>
-                                <p className="whitespace-pre-line text-base leading-7">{aiExplanation.user_reasoning_review}</p>
+                                <p className="leet-text text-base leading-7">{aiExplanation.user_reasoning_review}</p>
                               </div>
                             )}
                             {aiExplanation.wrong_choice_explanation && (
                               <div>
                                 <p className="mb-2 text-sm font-black">선택지 점검</p>
-                                <p className="whitespace-pre-line text-base leading-7">{aiExplanation.wrong_choice_explanation}</p>
+                                <p className="leet-text text-base leading-7">{aiExplanation.wrong_choice_explanation}</p>
                               </div>
                             )}
                           </div>
@@ -458,7 +457,7 @@ export default function DailyPage({ page, setPage }) {
                       </div>
                     )}
 
-                    <label className="block w-full" style={problemContentStyle}>
+                    <label className="block w-full">
                       <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
                       <textarea
                         value={reasoning}
@@ -470,7 +469,7 @@ export default function DailyPage({ page, setPage }) {
                     </label>
 
                     {error && (
-                      <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black" style={problemContentStyle}>
+                      <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">
                         {error}
                       </p>
                     )}
@@ -479,7 +478,6 @@ export default function DailyPage({ page, setPage }) {
                       disabled={submitting || Boolean(result)}
                       onClick={handleSubmit}
                       className="min-h-12 w-full rounded-md bg-pepper px-5 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
-                      style={problemContentStyle}
                     >
                       {submitting ? "제출 중..." : result ? "제출 완료" : "정답 제출하기"}
                     </button>

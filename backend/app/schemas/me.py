@@ -18,6 +18,22 @@ class AreaAccuracyResponse(BaseModel):
     accuracy_rate: int
 
 
+class MyAttemptHistoryItemResponse(BaseModel):
+    id: int
+    problem_id: int
+    title: str
+    area: str
+    selected_index: int
+    is_correct: bool
+    is_daily: bool
+    attempted_at: str
+
+
+class MyAttemptHistoryDayResponse(BaseModel):
+    date: str
+    attempts: list[MyAttemptHistoryItemResponse]
+
+
 class MyStatsResponse(BaseModel):
     user_id: int
     nickname: str

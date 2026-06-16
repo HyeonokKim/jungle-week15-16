@@ -115,6 +115,10 @@ export function fetchMyPosts() {
   return request("/me/posts");
 }
 
+export function fetchMyAttemptHistory() {
+  return request("/me/attempt-history");
+}
+
 export function fetchMyStats() {
   return request("/stats/me");
 }

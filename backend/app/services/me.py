@@ -27,8 +27,22 @@ def get_my_attempts(db: Session, user: User) -> list[Attempt]:
         db.execute(
             select(Attempt)
             .where(Attempt.user_id == user.id)
-            .options(selectinload(Attempt.problem))
+            .options(selectinload(Attempt.problem).selectinload(Problem.exam))
             .order_by(Attempt.attempted_at.desc(), Attempt.id.desc())
+        )
+        .scalars()
+        .all()
+    )
+
+
+def get_recent_attempt_history(db: Session, user: User, limit: int = 20) -> list[Attempt]:
+    return list(
+        db.execute(
+            select(Attempt)
+            .where(Attempt.user_id == user.id)
+            .options(selectinload(Attempt.problem).selectinload(Problem.exam))
+            .order_by(Attempt.attempted_at.desc(), Attempt.id.desc())
+            .limit(limit)
         )
         .scalars()
         .all()

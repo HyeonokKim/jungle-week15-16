@@ -4,8 +4,21 @@ from sqlalchemy.orm import Session
 from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
 from backend.app.models.user import User
-from backend.app.schemas.me import AreaAccuracyResponse, MyPostResponse, MyStatsResponse
-from backend.app.services.me import calculate_accuracy, get_my_attempts, get_my_posts, summarize_area_accuracy
+from backend.app.models.attempt import Attempt
+from backend.app.schemas.me import (
+    AreaAccuracyResponse,
+    MyAttemptHistoryDayResponse,
+    MyAttemptHistoryItemResponse,
+    MyPostResponse,
+    MyStatsResponse,
+)
+from backend.app.services.me import (
+    calculate_accuracy,
+    get_my_attempts,
+    get_my_posts,
+    get_recent_attempt_history,
+    summarize_area_accuracy,
+)
 
 
 router = APIRouter(tags=["me"])
@@ -33,6 +46,38 @@ def read_my_posts(
             created_at=post.created_at.isoformat(),
         )
         for post in posts
+    ]
+
+
+@router.get("/me/attempt-history", response_model=list[MyAttemptHistoryDayResponse])
+def read_my_attempt_history(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[MyAttemptHistoryDayResponse]:
+    attempts = get_recent_attempt_history(db, user)
+    grouped: dict[str, list[Attempt]] = {}
+    for attempt in attempts:
+        date_key = attempt.attempted_at.strftime("%Y.%m.%d")
+        grouped.setdefault(date_key, []).append(attempt)
+
+    return [
+        MyAttemptHistoryDayResponse(
+            date=date_key,
+            attempts=[
+                MyAttemptHistoryItemResponse(
+                    id=attempt.id,
+                    problem_id=attempt.problem_id,
+                    title=f"{attempt.problem.exam.year}학년도 {AREA_LABELS[attempt.problem.area.value]} {attempt.problem.number}번",
+                    area=attempt.problem.area.value,
+                    selected_index=attempt.selected_index,
+                    is_correct=attempt.is_correct,
+                    is_daily=attempt.is_daily,
+                    attempted_at=attempt.attempted_at.isoformat(),
+                )
+                for attempt in day_attempts
+            ],
+        )
+        for date_key, day_attempts in grouped.items()
     ]
 
 
