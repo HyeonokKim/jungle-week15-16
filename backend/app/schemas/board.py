@@ -5,6 +5,10 @@ class BoardCommentCreate(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
 
 
+class BoardPostUpdate(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+
+
 class BoardCommentResponse(BaseModel):
     id: int
     post_id: int
@@ -29,6 +33,7 @@ class BoardPostResponse(BaseModel):
     content: str
     selected_index: int
     is_correct: bool
+    is_mine: bool
     created_at: str
     comments: list[BoardCommentResponse]
 

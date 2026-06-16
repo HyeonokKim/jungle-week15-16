@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 
-import { createBoardComment, fetchDailyProblem, fetchProblemBoard } from "../api/client";
+import {
+  createBoardComment,
+  deleteBoardPost,
+  fetchDailyProblem,
+  fetchProblemBoard,
+  updateBoardPost,
+} from "../api/client";
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 
@@ -8,9 +14,13 @@ export default function BoardPage({ page, setPage }) {
   const [board, setBoard] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentSubmittingId, setCommentSubmittingId] = useState(null);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [postActionId, setPostActionId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [commentErrors, setCommentErrors] = useState({});
+  const [postError, setPostError] = useState("");
 
   useEffect(() => {
     let ignore = false;
@@ -43,6 +53,76 @@ export default function BoardPage({ page, setPage }) {
   }, []);
 
   const problem = board?.problem;
+
+  function beginEdit(post) {
+    setEditingPostId(post.id);
+    setEditDraft(post.content);
+    setPostError("");
+  }
+
+  function cancelEdit() {
+    setEditingPostId(null);
+    setEditDraft("");
+    setPostError("");
+  }
+
+  async function handlePostUpdate(postId) {
+    const content = editDraft.trim();
+    if (!content) {
+      setPostError("추론 내용을 입력해주세요.");
+      return;
+    }
+    if (!problem) {
+      return;
+    }
+
+    try {
+      setPostActionId(postId);
+      const updatedPost = await updateBoardPost({ problemId: problem.id, postId, content });
+      setBoard((current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          posts: current.posts.map((post) => (post.id === postId ? updatedPost : post)),
+        };
+      });
+      cancelEdit();
+    } catch (err) {
+      setPostError(err.message);
+    } finally {
+      setPostActionId(null);
+    }
+  }
+
+  async function handlePostDelete(postId) {
+    if (!problem || !window.confirm("이 추론 게시글을 삭제할까요?")) {
+      return;
+    }
+
+    try {
+      setPostActionId(postId);
+      await deleteBoardPost({ problemId: problem.id, postId });
+      setBoard((current) => {
+        if (!current) {
+          return current;
+        }
+        return {
+          ...current,
+          posts: current.posts.filter((post) => post.id !== postId),
+        };
+      });
+      if (editingPostId === postId) {
+        cancelEdit();
+      }
+      setPostError("");
+    } catch (err) {
+      setPostError(err.message);
+    } finally {
+      setPostActionId(null);
+    }
+  }
 
   async function handleCommentSubmit(postId) {
     const content = commentDrafts[postId]?.trim() ?? "";
@@ -107,6 +187,9 @@ export default function BoardPage({ page, setPage }) {
         {!error && (
           <Card className="p-7">
             <h2 className="mb-6 text-2xl font-black">추론 게시글</h2>
+            {postError && !editingPostId && (
+              <p className="mb-4 rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">{postError}</p>
+            )}
             {!board?.posts?.length && !loading ? (
               <p className="rounded-md border border-smoke p-5 text-sm font-black">아직 등록된 추론 게시글이 없어요.</p>
             ) : (
@@ -123,9 +206,63 @@ export default function BoardPage({ page, setPage }) {
                         <span className="rounded-md bg-pepper px-3 py-2 text-xs font-black text-white">
                           {post.is_correct ? "정답" : "오답"}
                         </span>
+                        {post.is_mine && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => beginEdit(post)}
+                              disabled={postActionId === post.id}
+                              className="rounded-md border border-smoke px-3 py-2 text-xs font-black hover:bg-paper disabled:cursor-not-allowed disabled:text-[#777]"
+                            >
+                              수정
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePostDelete(post.id)}
+                              disabled={postActionId === post.id}
+                              className="grid h-8 w-8 place-items-center rounded-md border border-smoke text-sm hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60"
+                              aria-label="추론 게시글 삭제"
+                              title="추론 게시글 삭제"
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
-                    <p className="whitespace-pre-line break-keep text-base leading-7">{post.content}</p>
+                    {editingPostId === post.id ? (
+                      <div className="space-y-3">
+                        <textarea
+                          value={editDraft}
+                          onChange={(event) => setEditDraft(event.target.value)}
+                          className="min-h-28 w-full rounded-md border border-smoke p-3 text-base leading-7"
+                          placeholder="수정할 추론 내용을 입력해주세요."
+                        />
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={postActionId === post.id}
+                            className="rounded-md border border-smoke px-4 py-2 text-sm font-black hover:bg-paper disabled:cursor-not-allowed"
+                          >
+                            취소
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePostUpdate(post.id)}
+                            disabled={postActionId === post.id}
+                            className="rounded-md bg-pepper px-4 py-2 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
+                          >
+                            {postActionId === post.id ? "저장 중..." : "저장"}
+                          </button>
+                        </div>
+                        {postError && (
+                          <p className="rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">{postError}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-line break-keep text-base leading-7">{post.content}</p>
+                    )}
                     <div className="mt-5 border-t border-ash pt-5">
                       <h3 className="mb-3 text-sm font-black">댓글</h3>
                       {post.comments?.length ? (

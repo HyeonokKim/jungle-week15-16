@@ -21,6 +21,7 @@ class Attempt(Base):
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
     reasoning: Mapped[str] = mapped_column(Text)
     is_daily: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    solve_duration_sec: Mapped[int | None] = mapped_column(Integer, nullable=True)
     attempted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User", back_populates="attempts")

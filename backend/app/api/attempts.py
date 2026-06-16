@@ -7,6 +7,7 @@ from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
 from backend.app.models.user import User
 from backend.app.schemas.attempt import AttemptCreate, AttemptResultResponse
+from backend.app.api.daily import get_problem_stats
 from backend.app.services.attempts import submit_attempt
 
 
@@ -27,9 +28,12 @@ def create_attempt(
             selected_index=payload.selected_index,
             reasoning=payload.reasoning,
             today=date.today(),
+            solve_duration_sec=payload.solve_duration_sec,
         )
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
     answer_index = attempt.problem.answer_index
     if answer_index is None:
@@ -42,4 +46,5 @@ def create_attempt(
         answer_index=answer_index,
         is_correct=attempt.is_correct,
         explanation=attempt.problem.explanation,
+        problem_stats=get_problem_stats(db, attempt.problem_id),
     )

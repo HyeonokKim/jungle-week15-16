@@ -7,6 +7,13 @@ class ChoiceResponse(BaseModel):
     content: str
 
 
+class ProblemStatsResponse(BaseModel):
+    total_attempts: int
+    correct_attempts: int
+    accuracy_rate: int
+    average_solve_duration_sec: int | None
+
+
 class ProblemResponse(BaseModel):
     id: int
     year: int
@@ -17,6 +24,7 @@ class ProblemResponse(BaseModel):
     passage: str | None
     choices: list[ChoiceResponse]
     similarity_score: int | None = None
+    stats: ProblemStatsResponse
 
 
 class DailyProblemResponse(BaseModel):

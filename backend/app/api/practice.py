@@ -23,4 +23,4 @@ def get_next_practice_problem(
         selection = select_next_practice_problem_selection(db, user, date.today())
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return build_problem_response(selection.problem, similarity_score=selection.similarity_score)
+    return build_problem_response(db, selection.problem, similarity_score=selection.similarity_score)

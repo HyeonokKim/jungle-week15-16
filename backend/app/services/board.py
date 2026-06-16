@@ -63,3 +63,44 @@ def create_board_comment(
     db.refresh(comment)
     comment.user = user
     return comment
+
+
+def update_board_post(
+    db: Session,
+    user: User,
+    problem_id: int,
+    post_id: int,
+    content: str,
+) -> BoardPost:
+    normalized_content = content.strip()
+    if not normalized_content:
+        raise ValueError("Post content is required")
+
+    post = db.execute(
+        select(BoardPost)
+        .where(BoardPost.id == post_id, BoardPost.problem_id == problem_id)
+        .options(selectinload(BoardPost.user), selectinload(BoardPost.comments).selectinload(BoardComment.user))
+    ).scalar_one_or_none()
+    if not post:
+        raise LookupError("Board post not found")
+    if post.user_id != user.id:
+        raise PermissionError("You can edit only your own board post")
+
+    post.content = normalized_content
+    db.commit()
+    db.refresh(post)
+    post.user = user
+    return post
+
+
+def delete_board_post(db: Session, user: User, problem_id: int, post_id: int) -> None:
+    post = db.execute(
+        select(BoardPost).where(BoardPost.id == post_id, BoardPost.problem_id == problem_id)
+    ).scalar_one_or_none()
+    if not post:
+        raise LookupError("Board post not found")
+    if post.user_id != user.id:
+        raise PermissionError("You can delete only your own board post")
+
+    db.delete(post)
+    db.commit()

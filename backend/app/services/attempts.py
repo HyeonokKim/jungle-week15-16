@@ -20,6 +20,7 @@ def submit_attempt(
     selected_index: int,
     reasoning: str,
     today: date,
+    solve_duration_sec: int | None = None,
 ) -> Attempt:
     problem = db.get(Problem, problem_id)
     if not problem or problem.answer_index is None:
@@ -33,6 +34,9 @@ def submit_attempt(
         )
     ).scalar_one_or_none()
     is_daily = daily is not None
+    if daily and daily.completed:
+        raise PermissionError("Today's daily problem has already been completed")
+
     is_correct = selected_index == problem.answer_index
 
     attempt = Attempt(
@@ -42,6 +46,7 @@ def submit_attempt(
         is_correct=is_correct,
         reasoning=reasoning,
         is_daily=is_daily,
+        solve_duration_sec=solve_duration_sec,
     )
     db.add(attempt)
 

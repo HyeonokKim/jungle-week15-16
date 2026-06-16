@@ -32,6 +32,10 @@ function formatTimer(totalSeconds) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+function formatNullableTimer(totalSeconds) {
+  return typeof totalSeconds === "number" ? formatTimer(totalSeconds) : "-";
+}
+
 function formatAttemptLabel(attempt) {
   const status = attempt.is_correct ? "정답" : "오답";
   const mode = attempt.is_daily ? "데일리" : "연습";
@@ -139,6 +143,10 @@ export default function DailyPage({ page, setPage }) {
   }, []);
 
   async function handleSubmit() {
+    if (mode === "daily" && completedToday && !result) {
+      setError("오늘의 문제는 이미 제출했어요. 내일 새 문제를 풀어주세요.");
+      return;
+    }
     if (!daily || !selectedIndex) {
       setError("선택지를 먼저 골라주세요.");
       return;
@@ -154,8 +162,20 @@ export default function DailyPage({ page, setPage }) {
         problemId: daily.problem.id,
         selectedIndex,
         reasoning,
+        solveDurationSec: Math.max(0, timerLimitSec - remainingSec),
       });
       setResult(data);
+      setDaily((current) =>
+        current
+          ? {
+              ...current,
+              problem: {
+                ...current.problem,
+                stats: data.problem_stats,
+              },
+            }
+          : current
+      );
       setAiExplanation(null);
       setAiExplanationError("");
       if (mode === "daily") {
@@ -188,12 +208,13 @@ export default function DailyPage({ page, setPage }) {
       : aiExplanationCompleted
         ? "AI 해설 생성됨"
         : "AI 해설 생성";
+  const dailySubmissionLocked = mode === "daily" && completedToday && !result;
   const problemTags = problem
     ? [areaLabel, `${problem.year}학년도`, `${problem.number}번`, similarityTag, `${Math.round(timerLimitSec / 60)}분 제한`].filter(Boolean)
     : [];
 
   useEffect(() => {
-    if (!problem || result || remainingSec <= 0) {
+    if (!problem || result || dailySubmissionLocked || remainingSec <= 0) {
       return undefined;
     }
 
@@ -202,7 +223,7 @@ export default function DailyPage({ page, setPage }) {
     }, 1000);
 
     return () => window.clearInterval(timerId);
-  }, [problem, remainingSec, result]);
+  }, [dailySubmissionLocked, problem, remainingSec, result]);
 
   async function loadPracticeProblem() {
     try {
@@ -322,6 +343,11 @@ export default function DailyPage({ page, setPage }) {
                   </span>
                 ))}
               </div>
+              {dailySubmissionLocked && (
+                <p className="mb-5 rounded-md border border-smoke bg-paper px-4 py-3 text-sm font-black">
+                  오늘의 문제는 이미 제출했어요. 추가 연습은 계속 풀 수 있습니다.
+                </p>
+              )}
 
               <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,380px)] xl:items-start">
                 <div className="order-2 min-w-0 xl:order-1">
@@ -350,7 +376,7 @@ export default function DailyPage({ page, setPage }) {
                         return (
                           <button
                             key={choice.id}
-                            disabled={Boolean(result)}
+                            disabled={Boolean(result) || dailySubmissionLocked}
                             onClick={() => setSelectedIndex(choice.idx)}
                             className={`leet-text w-full rounded-md border px-5 py-3 text-left text-base ${
                               isAnswer
@@ -367,9 +393,9 @@ export default function DailyPage({ page, setPage }) {
                     </div>
 
                     <div className="grid w-full gap-3 sm:grid-cols-3">
-                      <Stat label="정답률" value="42%" />
-                      <Stat label="평균 풀이" value="4:18" />
-                      <Stat label="누적 풀이" value="1,284명" />
+                      <Stat label="정답률" value={`${problem.stats?.accuracy_rate ?? 0}%`} />
+                      <Stat label="평균 풀이" value={formatNullableTimer(problem.stats?.average_solve_duration_sec)} />
+                      <Stat label="누적 풀이" value={`${(problem.stats?.total_attempts ?? 0).toLocaleString("ko-KR")}명`} />
                     </div>
 
                     {result && (
@@ -461,7 +487,7 @@ export default function DailyPage({ page, setPage }) {
                       <span className="mb-2 block text-sm font-black">나의 추론 코멘트</span>
                       <textarea
                         value={reasoning}
-                        disabled={Boolean(result)}
+                        disabled={Boolean(result) || dailySubmissionLocked}
                         onChange={(event) => setReasoning(event.target.value)}
                         className="min-h-36 w-full rounded-md border border-smoke p-4 text-base leading-7"
                         placeholder="왜 이 답을 골랐는지 먼저 적어보세요."
@@ -475,11 +501,11 @@ export default function DailyPage({ page, setPage }) {
                     )}
 
                     <button
-                      disabled={submitting || Boolean(result)}
+                      disabled={submitting || Boolean(result) || dailySubmissionLocked}
                       onClick={handleSubmit}
                       className="min-h-12 w-full rounded-md bg-pepper px-5 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
                     >
-                      {submitting ? "제출 중..." : result ? "제출 완료" : "정답 제출하기"}
+                      {submitting ? "제출 중..." : result ? "제출 완료" : dailySubmissionLocked ? "오늘의 문제 풀이 완료" : "정답 제출하기"}
                     </button>
                   </div>
                 </div>

@@ -79,13 +79,14 @@ export function fetchPracticeProblem() {
   return request("/practice/next");
 }
 
-export function submitAttempt({ problemId, selectedIndex, reasoning }) {
+export function submitAttempt({ problemId, selectedIndex, reasoning, solveDurationSec }) {
   return request("/attempts", {
     method: "POST",
     body: JSON.stringify({
       problem_id: problemId,
       selected_index: selectedIndex,
       reasoning,
+      solve_duration_sec: solveDurationSec,
     }),
   });
 }
@@ -102,6 +103,19 @@ export function fetchAIExplanation(attemptId) {
 
 export function fetchProblemBoard(problemId) {
   return request(`/problems/${problemId}/board`);
+}
+
+export function updateBoardPost({ problemId, postId, content }) {
+  return request(`/problems/${problemId}/board/posts/${postId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export function deleteBoardPost({ problemId, postId }) {
+  return request(`/problems/${problemId}/board/posts/${postId}`, {
+    method: "DELETE",
+  });
 }
 
 export function createBoardComment({ problemId, postId, content }) {
