@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -39,8 +40,25 @@ class SourceSet:
 
 def extract_pdf_text(path: Path) -> tuple[str, int]:
     reader = PdfReader(str(path))
+    page_count = len(reader.pages)
+
+    try:
+        completed = subprocess.run(
+            ["pdftotext", "-raw", str(path), "-"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        pages = [page.extract_text() or "" for page in reader.pages]
+        return "\n".join(pages), page_count
+
+    raw_text = completed.stdout
+    if raw_text.strip():
+        return raw_text, page_count
+
     pages = [page.extract_text() or "" for page in reader.pages]
-    return "\n".join(pages), len(reader.pages)
+    return "\n".join(pages), page_count
 
 
 def compact_text(text: str) -> str:
@@ -91,7 +109,7 @@ def find_reading_groups(text: str) -> list[tuple[int, int, str]]:
 
 
 def find_number_span(text: str, number: int, start_at: int = 0) -> int:
-    pattern = re.compile(rf"(?<!\d\.){number}\.\s*")
+    pattern = re.compile(rf"(?m)^\s*{number}\.\s*")
     match = pattern.search(text, start_at)
     return match.start() if match else -1
 
