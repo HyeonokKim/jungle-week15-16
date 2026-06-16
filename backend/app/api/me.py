@@ -1,23 +1,28 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
-from backend.app.models.user import User
 from backend.app.models.attempt import Attempt
+from backend.app.models.user import User
 from backend.app.schemas.me import (
     AreaAccuracyResponse,
     MyAttemptHistoryDayResponse,
     MyAttemptHistoryItemResponse,
     MyPostResponse,
     MyStatsResponse,
+    WeeklySummaryResponse,
 )
 from backend.app.services.me import (
     calculate_accuracy,
     get_my_attempts,
     get_my_posts,
     get_recent_attempt_history,
+    get_weekly_attempts,
     summarize_area_accuracy,
+    summarize_weekly_attempts,
 )
 
 
@@ -79,6 +84,29 @@ def read_my_attempt_history(
         )
         for date_key, day_attempts in grouped.items()
     ]
+
+
+@router.get("/me/weekly-summary", response_model=WeeklySummaryResponse)
+def read_my_weekly_summary(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> WeeklySummaryResponse:
+    today = date.today()
+    weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
+
+    return WeeklySummaryResponse(
+        week_start=weekly_summary.week_start.isoformat(),
+        week_end=weekly_summary.week_end.isoformat(),
+        total_attempts=weekly_summary.total_attempts,
+        correct_attempts=weekly_summary.correct_attempts,
+        accuracy_rate=weekly_summary.accuracy_rate,
+        daily_attempts=weekly_summary.daily_attempts,
+        practice_attempts=weekly_summary.practice_attempts,
+        average_solve_duration_sec=weekly_summary.average_solve_duration_sec,
+        weak_type=weekly_summary.weak_type,
+        area_accuracy=[AreaAccuracyResponse(**item) for item in weekly_summary.area_accuracy],
+        summary_text=weekly_summary.summary_text,
+    )
 
 
 @router.get("/stats/me", response_model=MyStatsResponse)

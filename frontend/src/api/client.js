@@ -133,6 +133,10 @@ export function fetchMyAttemptHistory() {
   return request("/me/attempt-history");
 }
 
+export function fetchMyWeeklySummary() {
+  return request("/me/weekly-summary");
+}
+
 export function fetchMyStats() {
   return request("/stats/me");
 }

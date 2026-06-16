@@ -34,6 +34,20 @@ class MyAttemptHistoryDayResponse(BaseModel):
     attempts: list[MyAttemptHistoryItemResponse]
 
 
+class WeeklySummaryResponse(BaseModel):
+    week_start: str
+    week_end: str
+    total_attempts: int
+    correct_attempts: int
+    accuracy_rate: int
+    daily_attempts: int
+    practice_attempts: int
+    average_solve_duration_sec: int | None
+    weak_type: str | None
+    area_accuracy: list[AreaAccuracyResponse]
+    summary_text: str
+
+
 class MyStatsResponse(BaseModel):
     user_id: int
     nickname: str

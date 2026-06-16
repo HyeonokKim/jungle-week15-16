@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { fetchMyPosts, fetchMySettings, fetchMyStats, updateMySettings } from "../api/client";
+import { fetchMyPosts, fetchMySettings, fetchMyStats, fetchMyWeeklySummary, updateMySettings } from "../api/client";
 import Avatar from "../components/Avatar";
 import Card from "../components/Card";
 import SettingOptionGroup from "../components/SettingOptionGroup";
@@ -68,11 +68,24 @@ function formatDate(value) {
   });
 }
 
+function formatDuration(seconds) {
+  if (seconds == null) {
+    return "-";
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (minutes === 0) {
+    return `${remainder}초`;
+  }
+  return `${minutes}분 ${remainder}초`;
+}
+
 export default function MyPage({ page, setPage }) {
   const [posts, setPosts] = useState([]);
   const [postPage, setPostPage] = useState(1);
   const [stats, setStats] = useState(null);
   const [settings, setSettings] = useState(null);
+  const [weeklySummary, setWeeklySummary] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -84,16 +97,18 @@ export default function MyPage({ page, setPage }) {
     async function loadMyPage() {
       try {
         setLoading(true);
-        const [postData, statData, settingData] = await Promise.all([
+        const [postData, statData, settingData, weeklySummaryData] = await Promise.all([
           fetchMyPosts(),
           fetchMyStats(),
           fetchMySettings(),
+          fetchMyWeeklySummary(),
         ]);
         if (!ignore) {
           setPosts(postData);
           setPostPage(1);
           setStats(statData);
           setSettings(settingData);
+          setWeeklySummary(weeklySummaryData);
           setError("");
         }
       } catch (err) {
@@ -272,7 +287,44 @@ export default function MyPage({ page, setPage }) {
                 <p className="mt-1 text-xl font-black text-[#777]">풀이 기록 없음</p>
               )}
             </div>
-            <Stat label="이번 주 요약" value="추후 추가" className="opacity-50" />
+            <div className="rounded-md border border-smoke bg-white px-4 py-3 lg:col-span-2">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-[#666]">이번 주 요약</p>
+                  <p className="mt-1 text-xl font-black">
+                    {weeklySummary
+                      ? `${formatDate(weeklySummary.week_start)} - ${formatDate(weeklySummary.week_end)}`
+                      : "불러오는 중"}
+                  </p>
+                </div>
+                {weeklySummary?.weak_type && (
+                  <span className="rounded-md bg-paper px-3 py-2 text-xs font-black text-[#555]">
+                    {problemTypeLabels[weeklySummary.weak_type] ?? weeklySummary.weak_type}
+                  </span>
+                )}
+              </div>
+              <p className="leet-text mt-4 text-sm font-black leading-6 text-[#555]">
+                {weeklySummary?.summary_text ?? "이번 주 학습 요약을 불러오는 중..."}
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                <div className="rounded-md bg-paper px-3 py-2">
+                  <p className="text-[11px] font-black text-[#777]">풀이</p>
+                  <p className="text-sm font-black">{weeklySummary?.total_attempts ?? 0}문제</p>
+                </div>
+                <div className="rounded-md bg-paper px-3 py-2">
+                  <p className="text-[11px] font-black text-[#777]">정답률</p>
+                  <p className="text-sm font-black">{weeklySummary?.accuracy_rate ?? 0}%</p>
+                </div>
+                <div className="rounded-md bg-paper px-3 py-2">
+                  <p className="text-[11px] font-black text-[#777]">추가 연습</p>
+                  <p className="text-sm font-black">{weeklySummary?.practice_attempts ?? 0}문제</p>
+                </div>
+                <div className="rounded-md bg-paper px-3 py-2">
+                  <p className="text-[11px] font-black text-[#777]">평균 풀이</p>
+                  <p className="text-sm font-black">{formatDuration(weeklySummary?.average_solve_duration_sec)}</p>
+                </div>
+              </div>
+            </div>
           </div>
           <p className="mt-4 min-h-5 text-sm font-black text-[#666]">
             {settingsSaving ? "설정을 저장하는 중..." : settingsMessage}
