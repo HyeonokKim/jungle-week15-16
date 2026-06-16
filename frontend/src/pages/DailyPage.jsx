@@ -286,7 +286,11 @@ export default function DailyPage({ page, setPage }) {
                       </div>
                     )}
 
-                    <div data-problem-content-block className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5">
+                    <div
+                      data-problem-content-block
+                      className="w-fit max-w-full rounded-md border border-pepper p-4 sm:p-5"
+                      style={problemContentStyle}
+                    >
                       <p className="whitespace-pre-line break-keep text-base leading-7">{problem.question_text}</p>
                     </div>
 
