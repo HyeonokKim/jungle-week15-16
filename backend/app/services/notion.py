@@ -3,13 +3,17 @@ from __future__ import annotations
 import json
 import ssl
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import certifi
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings, get_settings
+from backend.app.models.user import User
+from backend.app.models.weekly_summary_export import WeeklySummaryExport
 from backend.app.services.me import PROBLEM_TYPE_LABELS, WeeklySummary
 
 
@@ -28,6 +32,64 @@ class NotionAPIError(Exception):
 class NotionSaveResult:
     page_id: str
     url: str | None
+
+
+@dataclass(frozen=True)
+class WeeklySummaryNotionSaveResult:
+    page_id: str
+    url: str | None
+    already_saved: bool
+
+
+def save_weekly_summary_to_notion_once(
+    db: Session,
+    user: User,
+    summary: WeeklySummary,
+    settings: Settings | None = None,
+    notion_saver: Callable[[WeeklySummary, Settings | None], NotionSaveResult] | None = None,
+) -> WeeklySummaryNotionSaveResult:
+    existing_export = get_existing_weekly_summary_export(db, user, summary)
+    if existing_export:
+        return WeeklySummaryNotionSaveResult(
+            page_id=existing_export.external_page_id,
+            url=existing_export.external_url,
+            already_saved=True,
+        )
+
+    save_to_notion = notion_saver or save_weekly_summary_to_notion
+    saved_page = save_to_notion(summary, settings)
+    weekly_export = WeeklySummaryExport(
+        user_id=user.id,
+        week_start=summary.week_start,
+        week_end=summary.week_end,
+        destination="notion",
+        external_page_id=saved_page.page_id,
+        external_url=saved_page.url,
+        summary_text=summary.summary_text,
+    )
+    db.add(weekly_export)
+    db.commit()
+    db.refresh(weekly_export)
+
+    return WeeklySummaryNotionSaveResult(
+        page_id=weekly_export.external_page_id,
+        url=weekly_export.external_url,
+        already_saved=False,
+    )
+
+
+def get_existing_weekly_summary_export(
+    db: Session,
+    user: User,
+    summary: WeeklySummary,
+) -> WeeklySummaryExport | None:
+    return db.execute(
+        select(WeeklySummaryExport).where(
+            WeeklySummaryExport.user_id == user.id,
+            WeeklySummaryExport.week_start == summary.week_start,
+            WeeklySummaryExport.destination == "notion",
+        )
+    ).scalar_one_or_none()
 
 
 def save_weekly_summary_to_notion(

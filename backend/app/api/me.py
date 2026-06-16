@@ -25,7 +25,7 @@ from backend.app.services.me import (
     summarize_area_accuracy,
     summarize_weekly_attempts,
 )
-from backend.app.services.notion import NotionAPIError, NotionConfigurationError, save_weekly_summary_to_notion
+from backend.app.services.notion import NotionAPIError, NotionConfigurationError, save_weekly_summary_to_notion_once
 
 
 router = APIRouter(tags=["me"])
@@ -120,7 +120,7 @@ def save_my_weekly_summary_to_notion(
     weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
 
     try:
-        result = save_weekly_summary_to_notion(weekly_summary)
+        result = save_weekly_summary_to_notion_once(db, user, weekly_summary)
     except NotionConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except NotionAPIError as exc:
@@ -129,7 +129,8 @@ def save_my_weekly_summary_to_notion(
     return WeeklySummaryNotionResponse(
         page_id=result.page_id,
         url=result.url,
-        message="이번 주 요약을 Notion에 저장했어요.",
+        already_saved=result.already_saved,
+        message="이미 저장된 이번 주 요약이에요." if result.already_saved else "이번 주 요약을 Notion에 저장했어요.",
     )
 
 

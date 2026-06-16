@@ -13,6 +13,7 @@ from backend.app.models.review_queue import ReviewQueue
 from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
 from backend.app.models.user_setting import UserSetting
+from backend.app.models.weekly_summary_export import WeeklySummaryExport
 
 __all__ = [
     "Attempt",
@@ -32,4 +33,5 @@ __all__ = [
     "User",
     "UserDaily",
     "UserSetting",
+    "WeeklySummaryExport",
 ]

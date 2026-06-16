@@ -51,6 +51,7 @@ class WeeklySummaryResponse(BaseModel):
 class WeeklySummaryNotionResponse(BaseModel):
     page_id: str
     url: str | None
+    already_saved: bool
     message: str
 
 
