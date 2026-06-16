@@ -9,6 +9,19 @@ import MyPage from "./pages/MyPage";
 export default function App() {
   const [page, setPage] = useState(() => (hasAccessToken() ? "daily" : "login"));
   const [authMessage, setAuthMessage] = useState("");
+  const [selectedBoardProblemId, setSelectedBoardProblemId] = useState(null);
+
+  function navigatePage(nextPage) {
+    if (nextPage === "board") {
+      setSelectedBoardProblemId(null);
+    }
+    setPage(nextPage);
+  }
+
+  function openProblemBoard(problemId) {
+    setSelectedBoardProblemId(problemId);
+    setPage("board");
+  }
 
   useEffect(() => {
     const token = consumeTokenFromUrl();
@@ -27,16 +40,16 @@ export default function App() {
   }, []);
 
   if (page === "login") {
-    return <LoginPage authMessage={authMessage} setAuthMessage={setAuthMessage} setPage={setPage} />;
+    return <LoginPage authMessage={authMessage} setAuthMessage={setAuthMessage} setPage={navigatePage} />;
   }
 
   if (page === "board") {
-    return <BoardPage page={page} setPage={setPage} />;
+    return <BoardPage page={page} setPage={navigatePage} selectedProblemId={selectedBoardProblemId} />;
   }
 
   if (page === "mypage") {
-    return <MyPage page={page} setPage={setPage} />;
+    return <MyPage page={page} setPage={navigatePage} onOpenBoardProblem={openProblemBoard} />;
   }
 
-  return <DailyPage page={page} setPage={setPage} />;
+  return <DailyPage page={page} setPage={navigatePage} />;
 }

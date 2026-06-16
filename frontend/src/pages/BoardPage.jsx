@@ -10,7 +10,7 @@ import {
 import Card from "../components/Card";
 import Shell from "../components/Shell";
 
-export default function BoardPage({ page, setPage }) {
+export default function BoardPage({ page, setPage, selectedProblemId }) {
   const [board, setBoard] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentSubmittingId, setCommentSubmittingId] = useState(null);
@@ -28,8 +28,8 @@ export default function BoardPage({ page, setPage }) {
     async function loadBoard() {
       try {
         setLoading(true);
-        const daily = await fetchDailyProblem();
-        const data = await fetchProblemBoard(daily.problem.id);
+        const problemId = selectedProblemId ?? (await fetchDailyProblem()).problem.id;
+        const data = await fetchProblemBoard(problemId);
         if (!ignore) {
           setBoard(data);
           setError("");
@@ -50,7 +50,7 @@ export default function BoardPage({ page, setPage }) {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [selectedProblemId]);
 
   const problem = board?.problem;
 
@@ -164,7 +164,9 @@ export default function BoardPage({ page, setPage }) {
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="mb-4 text-sm font-black">문제별 추론 게시판</p>
-              <h2 className="text-3xl font-black">오늘의 문제를 푼 사람들의 생각</h2>
+              <h2 className="text-3xl font-black">
+                {selectedProblemId ? "내가 풀었던 문제의 생각" : "오늘의 문제를 푼 사람들의 생각"}
+              </h2>
             </div>
             <button onClick={() => setPage("daily")} className="h-11 w-fit rounded-md border border-smoke px-5 text-sm font-black hover:bg-paper">
               오늘의 문제

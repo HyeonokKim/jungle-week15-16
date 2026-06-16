@@ -87,7 +87,7 @@ function formatDuration(seconds) {
   return `${minutes}분 ${remainder}초`;
 }
 
-export default function MyPage({ page, setPage }) {
+export default function MyPage({ page, setPage, onOpenBoardProblem }) {
   const [posts, setPosts] = useState([]);
   const [postPage, setPostPage] = useState(1);
   const [stats, setStats] = useState(null);
@@ -216,7 +216,7 @@ export default function MyPage({ page, setPage }) {
                 {visiblePosts.map((post) => (
                   <button
                     key={post.id}
-                    onClick={() => setPage("board")}
+                    onClick={() => onOpenBoardProblem(post.problem_id)}
                     className="grid w-full gap-3 border-b border-ash px-5 py-4 text-left last:border-b-0 md:grid-cols-[1fr_100px_80px_120px] md:items-center"
                   >
                     <strong>{post.title}</strong>
