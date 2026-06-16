@@ -4,14 +4,35 @@ export const AUTH_REQUIRED_EVENT = "haripool:auth-required";
 
 async function request(path, options = {}) {
   const token = getAccessToken();
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-    ...options,
-  });
+  const { timeoutMs, ...fetchOptions } = options;
+  const controller = timeoutMs ? new AbortController() : null;
+  const timeoutId = timeoutMs
+    ? window.setTimeout(() => {
+        controller.abort();
+      }, timeoutMs)
+    : null;
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...fetchOptions.headers,
+      },
+      ...fetchOptions,
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("API 응답 시간이 초과됐습니다.");
+    }
+    throw err;
+  } finally {
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
@@ -142,7 +163,7 @@ export function fetchMyNotionConnection() {
 }
 
 export function fetchNotionLoginUrl() {
-  return request("/auth/notion/login-url");
+  return request("/auth/notion/login-url", { timeoutMs: 8000 });
 }
 
 export function saveMyWeeklySummaryToNotion() {

@@ -92,6 +92,7 @@ function formatDuration(seconds) {
 export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallbackStatus }) {
   const [posts, setPosts] = useState([]);
   const [postPage, setPostPage] = useState(1);
+  const [postSearchQuery, setPostSearchQuery] = useState("");
   const [stats, setStats] = useState(null);
   const [settings, setSettings] = useState(null);
   const [weeklySummary, setWeeklySummary] = useState(null);
@@ -158,9 +159,23 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
   const reasoningAccuracy = stats?.area_accuracy.find((item) => item.area === "reasoning_argumentation")?.accuracy_rate ?? 0;
   const weakTypeLabel = problemTypeLabels[settings?.weak_type] ?? null;
   const weakTypeAreaLabel = problemTypeAreaLabels[settings?.weak_type] ?? null;
-  const totalPostPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
+  const normalizedPostSearchQuery = postSearchQuery.trim().toLowerCase();
+  const filteredPosts = normalizedPostSearchQuery
+    ? posts.filter((post) => {
+        const searchableText = [
+          post.title,
+          areaLabels[post.area],
+          post.is_correct ? "정답" : "오답",
+          formatDate(post.created_at),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return searchableText.includes(normalizedPostSearchQuery);
+      })
+    : posts;
+  const totalPostPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
   const normalizedPostPage = Math.min(postPage, totalPostPages);
-  const visiblePosts = posts.slice(
+  const visiblePosts = filteredPosts.slice(
     (normalizedPostPage - 1) * POSTS_PER_PAGE,
     normalizedPostPage * POSTS_PER_PAGE,
   );
@@ -213,7 +228,13 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
       setNotionConnecting(true);
       setNotionMessage("");
       const result = await fetchNotionLoginUrl();
-      window.location.href = result.url;
+      if (!result.url) {
+        throw new Error("Notion 연결 URL을 받지 못했어요.");
+      }
+      window.location.assign(result.url);
+      window.setTimeout(() => {
+        setNotionConnecting(false);
+      }, 3000);
     } catch (err) {
       setNotionMessage(err.message);
       setNotionConnecting(false);
@@ -239,13 +260,30 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
 
         <Card className="p-6">
           <p className="mb-3 text-sm font-black">내 정보</p>
-          <h2 className="mb-5 text-3xl font-black">내 학습 게시글</h2>
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-3xl font-black">내 학습 게시글</h2>
+            <label className="w-full md:max-w-[320px]">
+              <span className="mb-2 block text-xs font-black text-[#666]">문제 검색</span>
+              <input
+                type="search"
+                value={postSearchQuery}
+                onChange={(event) => {
+                  setPostSearchQuery(event.target.value);
+                  setPostPage(1);
+                }}
+                placeholder="문제명, 영역, 정답 여부"
+                className="h-11 w-full rounded-md border border-smoke px-4 text-sm font-black outline-none focus:border-pepper"
+              />
+            </label>
+          </div>
           {loading ? (
             <div className="rounded-md border border-ash p-5 text-sm font-black">학습 게시글을 불러오는 중...</div>
           ) : error ? (
             <div className="rounded-md border border-pepper bg-paper p-5 text-sm font-black">{error}</div>
           ) : posts.length === 0 ? (
             <div className="rounded-md border border-ash p-5 text-sm font-black">아직 작성한 추론 게시글이 없어요.</div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="rounded-md border border-ash p-5 text-sm font-black">검색 결과가 없어요.</div>
           ) : (
             <>
               <div className="overflow-hidden rounded-md border border-ash">
@@ -267,8 +305,9 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm font-black text-[#666]">
-                  총 {posts.length}개 중 {(normalizedPostPage - 1) * POSTS_PER_PAGE + 1}-
-                  {Math.min(normalizedPostPage * POSTS_PER_PAGE, posts.length)}개 표시
+                  총 {filteredPosts.length}개 중 {(normalizedPostPage - 1) * POSTS_PER_PAGE + 1}-
+                  {Math.min(normalizedPostPage * POSTS_PER_PAGE, filteredPosts.length)}개 표시
+                  {postSearchQuery.trim() && ` / 전체 ${posts.length}개`}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
