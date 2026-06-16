@@ -31,3 +31,4 @@ class Problem(Base):
     board_posts = relationship("BoardPost", back_populates="problem", cascade="all, delete-orphan")
     review_queue_items = relationship("ReviewQueue", back_populates="problem", cascade="all, delete-orphan")
     embedding = relationship("ProblemEmbedding", back_populates="problem", cascade="all, delete-orphan", uselist=False)
+    ai_explanations = relationship("AIExplanation", back_populates="problem", cascade="all, delete-orphan")

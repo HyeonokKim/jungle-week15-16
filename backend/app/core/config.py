@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7
     openai_api_key: str | None = None
     openai_embedding_model: str = "text-embedding-3-small"
+    openai_ai_explanation_model: str = "gpt-4o-mini"
+    ai_explanation_candidate_count: int = 3
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

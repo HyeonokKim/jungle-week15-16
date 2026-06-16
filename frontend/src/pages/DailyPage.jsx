@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { fetchDailyProblem, fetchMySettings, fetchMyStats, fetchPracticeProblem, submitAttempt } from "../api/client";
+import {
+  fetchDailyProblem,
+  fetchMySettings,
+  fetchMyStats,
+  fetchPracticeProblem,
+  generateAIExplanation,
+  submitAttempt,
+} from "../api/client";
 import ActivityGrid from "../components/ActivityGrid";
 import Avatar from "../components/Avatar";
 import Card from "../components/Card";
@@ -11,6 +18,12 @@ import { recentSolved } from "../data/mockData";
 const areaLabels = {
   reading_comprehension: "언어이해",
   reasoning_argumentation: "추리논증",
+};
+
+const confidenceLabels = {
+  high: "신뢰도 높음",
+  medium: "신뢰도 보통",
+  low: "신뢰도 낮음",
 };
 
 function formatTimer(totalSeconds) {
@@ -27,6 +40,9 @@ export default function DailyPage({ page, setPage }) {
   const [reasoning, setReasoning] = useState("");
   const [result, setResult] = useState(null);
   const [stats, setStats] = useState(null);
+  const [aiExplanation, setAiExplanation] = useState(null);
+  const [aiExplanationLoading, setAiExplanationLoading] = useState(false);
+  const [aiExplanationError, setAiExplanationError] = useState("");
   const [completedToday, setCompletedToday] = useState(false);
   const [timerLimitSec, setTimerLimitSec] = useState(180);
   const [remainingSec, setRemainingSec] = useState(180);
@@ -47,6 +63,8 @@ export default function DailyPage({ page, setPage }) {
           setSelectedIndex(null);
           setReasoning("");
           setResult(null);
+          setAiExplanation(null);
+          setAiExplanationError("");
           setError("");
         }
       } catch (err) {
@@ -114,6 +132,8 @@ export default function DailyPage({ page, setPage }) {
         reasoning,
       });
       setResult(data);
+      setAiExplanation(null);
+      setAiExplanationError("");
       if (mode === "daily") {
         setCompletedToday(true);
         setDaily((current) => current ? { ...current, completed: true } : current);
@@ -136,6 +156,14 @@ export default function DailyPage({ page, setPage }) {
     mode === "practice" && typeof problem?.similarity_score === "number"
       ? `오늘 문제와 관련도 ${problem.similarity_score}%`
       : null;
+  const aiExplanationCompleted = aiExplanation?.status === "completed";
+  const aiExplanationButtonLabel = aiExplanationLoading
+    ? "생성 중..."
+    : aiExplanation?.status === "failed"
+      ? "다시 시도"
+      : aiExplanationCompleted
+        ? "AI 해설 생성됨"
+        : "AI 해설 생성";
   const problemTags = problem
     ? [areaLabel, `${problem.year}학년도`, `${problem.number}번`, similarityTag, `${Math.round(timerLimitSec / 60)}분 제한`].filter(Boolean)
     : [];
@@ -190,11 +218,30 @@ export default function DailyPage({ page, setPage }) {
       setSelectedIndex(null);
       setReasoning("");
       setResult(null);
+      setAiExplanation(null);
+      setAiExplanationError("");
       setError("");
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGenerateAIExplanation() {
+    if (!result?.attempt_id) {
+      return;
+    }
+
+    try {
+      setAiExplanationLoading(true);
+      setAiExplanationError("");
+      const data = await generateAIExplanation(result.attempt_id);
+      setAiExplanation(data);
+    } catch (err) {
+      setAiExplanationError(err.message);
+    } finally {
+      setAiExplanationLoading(false);
     }
   }
 
@@ -335,6 +382,79 @@ export default function DailyPage({ page, setPage }) {
                         <p className="mt-3 whitespace-pre-line text-base leading-7">
                           {result.explanation || "해설 데이터는 아직 준비 중입니다."}
                         </p>
+                      </div>
+                    )}
+
+                    {result && (
+                      <div className="rounded-md border border-pepper p-5" style={problemContentStyle}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xl font-black">AI 해설</p>
+                            <p className="mt-1 text-sm text-[#666]">
+                              여러 풀이 후보를 검증한 뒤 생성합니다.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={aiExplanationLoading || aiExplanationCompleted}
+                            onClick={handleGenerateAIExplanation}
+                            className="min-h-10 rounded-md border border-smoke px-4 text-sm font-black hover:bg-paper disabled:cursor-not-allowed disabled:bg-ash"
+                          >
+                            {aiExplanationButtonLabel}
+                          </button>
+                        </div>
+
+                        {aiExplanationError && (
+                          <p className="mt-4 rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">
+                            {aiExplanationError}
+                          </p>
+                        )}
+
+                        {aiExplanation?.status === "completed" && (
+                          <div className="mt-5 space-y-4">
+                            <div className="flex flex-wrap gap-2">
+                              {aiExplanation.confidence_level && (
+                                <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">
+                                  {confidenceLabels[aiExplanation.confidence_level] ?? aiExplanation.confidence_level}
+                                </span>
+                              )}
+                              <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">
+                                정답 도달 {aiExplanation.accepted_count}/{aiExplanation.candidate_count}
+                              </span>
+                              <span className="rounded-md bg-ash px-3 py-2 text-xs font-black">
+                                폐기 {aiExplanation.discarded_count}
+                              </span>
+                            </div>
+
+                            {aiExplanation.final_explanation && (
+                              <p className="whitespace-pre-line text-base leading-7">{aiExplanation.final_explanation}</p>
+                            )}
+                            {aiExplanation.solution_summary && (
+                              <div>
+                                <p className="mb-2 text-sm font-black">핵심 논리</p>
+                                <p className="whitespace-pre-line text-base leading-7">{aiExplanation.solution_summary}</p>
+                              </div>
+                            )}
+                            {aiExplanation.user_reasoning_review && (
+                              <div>
+                                <p className="mb-2 text-sm font-black">내 추론 진단</p>
+                                <p className="whitespace-pre-line text-base leading-7">{aiExplanation.user_reasoning_review}</p>
+                              </div>
+                            )}
+                            {aiExplanation.wrong_choice_explanation && (
+                              <div>
+                                <p className="mb-2 text-sm font-black">선택지 점검</p>
+                                <p className="whitespace-pre-line text-base leading-7">{aiExplanation.wrong_choice_explanation}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {aiExplanation?.status === "failed" && (
+                          <p className="mt-4 rounded-md border border-pepper bg-paper px-4 py-3 text-sm font-black">
+                            {aiExplanation.error_message || "AI 해설 생성에 실패했습니다."}
+                          </p>
+                        )}
                       </div>
                     )}
 

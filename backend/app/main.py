@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api import attempts, auth, board, daily, me, practice, settings
+from backend.app.api import ai_explanations, attempts, auth, board, daily, me, practice, settings
 from backend.app.core.config import get_settings
 
 
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(practice.router)
     app.include_router(attempts.router)
+    app.include_router(ai_explanations.router)
     app.include_router(board.router)
     app.include_router(me.router)
     app.include_router(settings.router)

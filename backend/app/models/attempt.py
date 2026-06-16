@@ -25,3 +25,4 @@ class Attempt(Base):
 
     user = relationship("User", back_populates="attempts")
     problem = relationship("Problem", back_populates="attempts")
+    ai_explanation = relationship("AIExplanation", back_populates="attempt", cascade="all, delete-orphan", uselist=False)

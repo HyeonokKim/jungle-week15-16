@@ -31,6 +31,8 @@ GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
 JWT_SECRET_KEY=change-me-in-env
 OPENAI_API_KEY=
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+OPENAI_AI_EXPLANATION_MODEL=gpt-4o-mini
+AI_EXPLANATION_CANDIDATE_COUNT=3
 ```
 
 `AUTH_DEV_MODE=true`일 때는 토큰이 없어도 개발 사용자(`id=1`)로 API를 사용할 수 있다. 실제 인증 흐름을 강제하려면 `AUTH_DEV_MODE=false`로 바꾼다.
@@ -108,6 +110,7 @@ python3 -m backend.app.services.problem_embeddings
 - `passages`
 - `problems`
 - `problem_embeddings`
+- `ai_explanations`
 - `choices`
 - `attempts`
 - `user_daily`

@@ -90,6 +90,16 @@ export function submitAttempt({ problemId, selectedIndex, reasoning }) {
   });
 }
 
+export function generateAIExplanation(attemptId) {
+  return request(`/attempts/${attemptId}/ai-explanation`, {
+    method: "POST",
+  });
+}
+
+export function fetchAIExplanation(attemptId) {
+  return request(`/attempts/${attemptId}/ai-explanation`);
+}
+
 export function fetchProblemBoard(problemId) {
   return request(`/problems/${problemId}/board`);
 }

@@ -31,3 +31,4 @@ class User(Base):
     board_comments = relationship("BoardComment", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan", uselist=False)
     review_queue_items = relationship("ReviewQueue", back_populates="user", cascade="all, delete-orphan")
+    ai_explanations = relationship("AIExplanation", back_populates="user", cascade="all, delete-orphan")
