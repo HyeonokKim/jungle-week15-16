@@ -14,7 +14,9 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import Settings, get_settings
 from backend.app.models.user import User
 from backend.app.models.weekly_summary_export import WeeklySummaryExport
+from backend.app.services.crypto import SecretDecryptionError, decrypt_secret
 from backend.app.services.me import PROBLEM_TYPE_LABELS, WeeklySummary
+from backend.app.services.notion_oauth import get_user_notion_connection
 
 
 NOTION_PAGES_URL = "https://api.notion.com/v1/pages"
@@ -25,6 +27,12 @@ class NotionConfigurationError(Exception):
 
 
 class NotionAPIError(Exception):
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class NotionConnectionRequiredError(Exception):
     pass
 
 
@@ -65,6 +73,59 @@ def save_weekly_summary_to_notion_once(
         destination="notion",
         external_page_id=saved_page.page_id,
         external_url=saved_page.url,
+        summary_text=summary.summary_text,
+    )
+    db.add(weekly_export)
+    db.commit()
+    db.refresh(weekly_export)
+
+    return WeeklySummaryNotionSaveResult(
+        page_id=weekly_export.external_page_id,
+        url=weekly_export.external_url,
+        already_saved=False,
+    )
+
+
+def save_weekly_summary_to_user_notion_once(
+    db: Session,
+    user: User,
+    summary: WeeklySummary,
+) -> WeeklySummaryNotionSaveResult:
+    existing_export = get_existing_weekly_summary_export(db, user, summary)
+    if existing_export:
+        return WeeklySummaryNotionSaveResult(
+            page_id=existing_export.external_page_id,
+            url=existing_export.external_url,
+            already_saved=True,
+        )
+
+    connection = get_user_notion_connection(db, user)
+    if connection is None:
+        raise NotionConnectionRequiredError("Notion 연결이 필요합니다.")
+
+    parent_page_id = connection.default_page_id or connection.duplicated_template_id
+    if not parent_page_id:
+        raise NotionConnectionRequiredError("Notion 템플릿 페이지를 찾을 수 없습니다. Notion을 다시 연결해 주세요.")
+
+    try:
+        access_token = decrypt_secret(connection.access_token_encrypted)
+    except SecretDecryptionError as exc:
+        raise NotionConnectionRequiredError("Notion 연결 정보를 읽을 수 없습니다. Notion을 다시 연결해 주세요.") from exc
+
+    payload = build_weekly_summary_page_payload(summary, parent_page_id)
+    response = post_notion_page(payload, access_token, get_settings().notion_version)
+    page_id = response.get("id")
+    if not isinstance(page_id, str):
+        raise NotionAPIError("Notion 저장 응답에 페이지 ID가 없습니다.")
+
+    page_url = response.get("url")
+    weekly_export = WeeklySummaryExport(
+        user_id=user.id,
+        week_start=summary.week_start,
+        week_end=summary.week_end,
+        destination="notion",
+        external_page_id=page_id,
+        external_url=page_url if isinstance(page_url, str) else None,
         summary_text=summary.summary_text,
     )
     db.add(weekly_export)
@@ -161,7 +222,8 @@ def post_notion_page(payload: dict[str, Any], notion_token: str, notion_version:
             response_payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         raise NotionAPIError(
-            f"Notion 저장 요청에 실패했습니다. 대상 페이지 공유와 권한을 확인해 주세요. (status: {exc.code})"
+            f"Notion 저장 요청에 실패했습니다. 대상 페이지 공유와 권한을 확인해 주세요. (status: {exc.code})",
+            status_code=exc.code,
         ) from exc
     except (URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise NotionAPIError("Notion 저장 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.") from exc

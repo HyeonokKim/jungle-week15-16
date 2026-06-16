@@ -137,6 +137,14 @@ export function fetchMyWeeklySummary() {
   return request("/me/weekly-summary");
 }
 
+export function fetchMyNotionConnection() {
+  return request("/me/notion-connection");
+}
+
+export function fetchNotionLoginUrl() {
+  return request("/auth/notion/login-url");
+}
+
 export function saveMyWeeklySummaryToNotion() {
   return request("/me/weekly-summary/notion", {
     method: "POST",

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
 import {
+  fetchNotionLoginUrl,
+  fetchMyNotionConnection,
   fetchMyPosts,
   fetchMySettings,
   fetchMyStats,
@@ -87,14 +89,16 @@ function formatDuration(seconds) {
   return `${minutes}분 ${remainder}초`;
 }
 
-export default function MyPage({ page, setPage, onOpenBoardProblem }) {
+export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallbackStatus }) {
   const [posts, setPosts] = useState([]);
   const [postPage, setPostPage] = useState(1);
   const [stats, setStats] = useState(null);
   const [settings, setSettings] = useState(null);
   const [weeklySummary, setWeeklySummary] = useState(null);
+  const [notionConnection, setNotionConnection] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState("");
+  const [notionConnecting, setNotionConnecting] = useState(false);
   const [notionSaving, setNotionSaving] = useState(false);
   const [notionMessage, setNotionMessage] = useState("");
   const [notionPageUrl, setNotionPageUrl] = useState("");
@@ -107,11 +111,12 @@ export default function MyPage({ page, setPage, onOpenBoardProblem }) {
     async function loadMyPage() {
       try {
         setLoading(true);
-        const [postData, statData, settingData, weeklySummaryData] = await Promise.all([
+        const [postData, statData, settingData, weeklySummaryData, notionConnectionData] = await Promise.all([
           fetchMyPosts(),
           fetchMyStats(),
           fetchMySettings(),
           fetchMyWeeklySummary(),
+          fetchMyNotionConnection(),
         ]);
         if (!ignore) {
           setPosts(postData);
@@ -119,6 +124,7 @@ export default function MyPage({ page, setPage, onOpenBoardProblem }) {
           setStats(statData);
           setSettings(settingData);
           setWeeklySummary(weeklySummaryData);
+          setNotionConnection(notionConnectionData);
           setError("");
         }
       } catch (err) {
@@ -137,6 +143,16 @@ export default function MyPage({ page, setPage, onOpenBoardProblem }) {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (notionCallbackStatus === "connected") {
+      setNotionMessage("Notion 연결이 완료됐어요.");
+    } else if (notionCallbackStatus === "denied") {
+      setNotionMessage("Notion 연결이 취소됐어요.");
+    } else if (notionCallbackStatus === "failed") {
+      setNotionMessage("Notion 연결에 실패했어요.");
+    }
+  }, [notionCallbackStatus]);
 
   const readingAccuracy = stats?.area_accuracy.find((item) => item.area === "reading_comprehension")?.accuracy_rate ?? 0;
   const reasoningAccuracy = stats?.area_accuracy.find((item) => item.area === "reasoning_argumentation")?.accuracy_rate ?? 0;
@@ -170,6 +186,14 @@ export default function MyPage({ page, setPage, onOpenBoardProblem }) {
   }
 
   async function handleSaveWeeklySummaryToNotion() {
+    if (!notionConnection?.connected) {
+      setNotionMessage("Notion을 먼저 연결해 주세요.");
+      return;
+    }
+    if (!notionConnection.default_page_id) {
+      setNotionMessage("Notion 템플릿 저장 위치를 찾을 수 없어요. Notion을 다시 연결해 주세요.");
+      return;
+    }
     try {
       setNotionSaving(true);
       setNotionMessage("");
@@ -181,6 +205,18 @@ export default function MyPage({ page, setPage, onOpenBoardProblem }) {
       setNotionMessage(err.message);
     } finally {
       setNotionSaving(false);
+    }
+  }
+
+  async function handleConnectNotion() {
+    try {
+      setNotionConnecting(true);
+      setNotionMessage("");
+      const result = await fetchNotionLoginUrl();
+      window.location.href = result.url;
+    } catch (err) {
+      setNotionMessage(err.message);
+      setNotionConnecting(false);
     }
   }
 
@@ -323,14 +359,31 @@ export default function MyPage({ page, setPage, onOpenBoardProblem }) {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  {notionConnection?.connected && (
+                    <span className="rounded-md bg-paper px-3 py-2 text-xs font-black text-[#555]">
+                      {notionConnection.default_page_id
+                        ? notionConnection.workspace_name || "Notion 연결됨"
+                        : "저장 위치 없음"}
+                    </span>
+                  )}
                   {weeklySummary?.weak_type && (
                     <span className="rounded-md bg-paper px-3 py-2 text-xs font-black text-[#555]">
                       {problemTypeLabels[weeklySummary.weak_type] ?? weeklySummary.weak_type}
                     </span>
                   )}
+                  {!notionConnection?.connected && (
+                    <button
+                      type="button"
+                      disabled={notionConnecting}
+                      onClick={handleConnectNotion}
+                      className="h-10 rounded-md border border-pepper px-4 text-sm font-black hover:bg-paper disabled:cursor-not-allowed disabled:border-ash disabled:bg-ash disabled:text-[#777]"
+                    >
+                      {notionConnecting ? "연결 중..." : "Notion 연결"}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    disabled={!weeklySummary || notionSaving}
+                    disabled={!weeklySummary || !notionConnection?.connected || !notionConnection?.default_page_id || notionSaving}
                     onClick={handleSaveWeeklySummaryToNotion}
                     className="h-10 rounded-md border border-pepper px-4 text-sm font-black hover:bg-paper disabled:cursor-not-allowed disabled:border-ash disabled:bg-ash disabled:text-[#777]"
                   >

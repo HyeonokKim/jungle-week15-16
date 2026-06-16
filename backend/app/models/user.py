@@ -33,3 +33,4 @@ class User(Base):
     review_queue_items = relationship("ReviewQueue", back_populates="user", cascade="all, delete-orphan")
     ai_explanations = relationship("AIExplanation", back_populates="user", cascade="all, delete-orphan")
     weekly_summary_exports = relationship("WeeklySummaryExport", back_populates="user", cascade="all, delete-orphan")
+    notion_connection = relationship("UserNotionConnection", back_populates="user", cascade="all, delete-orphan", uselist=False)

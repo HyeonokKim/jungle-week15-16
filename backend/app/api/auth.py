@@ -9,11 +9,20 @@ from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
 from backend.app.core.security import create_access_token
 from backend.app.models.user import User
+from backend.app.services.crypto import SecretEncryptionConfigurationError
 from backend.app.services.auth import (
     build_google_login_url,
     exchange_google_code,
     fetch_google_userinfo,
     get_or_create_google_user,
+)
+from backend.app.services.notion_oauth import (
+    NotionOAuthConfigurationError,
+    NotionOAuthError,
+    build_notion_oauth_login_url,
+    exchange_notion_code,
+    read_user_id_from_notion_oauth_state,
+    upsert_user_notion_connection,
 )
 
 
@@ -44,6 +53,44 @@ def google_callback(
     user = get_or_create_google_user(db, userinfo)
     app_token = create_access_token(subject=str(user.id), extra_claims={"email": user.email})
     redirect_url = f"{get_settings().frontend_auth_redirect_url}?{urlencode({'token': app_token})}"
+    return RedirectResponse(redirect_url)
+
+
+@router.get("/notion/login-url")
+def notion_login_url(user: User = Depends(get_current_user)) -> dict[str, str]:
+    try:
+        return {"url": build_notion_oauth_login_url(user)}
+    except NotionOAuthConfigurationError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+@router.get("/notion/callback")
+def notion_callback(
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    app_settings = get_settings()
+    if error:
+        redirect_url = f"{app_settings.frontend_auth_redirect_url}?{urlencode({'notion': 'denied'})}"
+        return RedirectResponse(redirect_url)
+    if not code or not state:
+        redirect_url = f"{app_settings.frontend_auth_redirect_url}?{urlencode({'notion': 'failed'})}"
+        return RedirectResponse(redirect_url)
+
+    try:
+        user_id = read_user_id_from_notion_oauth_state(state)
+        user = db.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=400, detail="사용자를 찾을 수 없습니다.")
+        token = exchange_notion_code(code)
+        upsert_user_notion_connection(db, user, token)
+    except (HTTPException, NotionOAuthConfigurationError, NotionOAuthError, SecretEncryptionConfigurationError):
+        redirect_url = f"{app_settings.frontend_auth_redirect_url}?{urlencode({'notion': 'failed'})}"
+        return RedirectResponse(redirect_url)
+
+    redirect_url = f"{app_settings.frontend_auth_redirect_url}?{urlencode({'notion': 'connected'})}"
     return RedirectResponse(redirect_url)
 
 

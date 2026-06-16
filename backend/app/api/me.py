@@ -13,6 +13,7 @@ from backend.app.schemas.me import (
     MyAttemptHistoryItemResponse,
     MyPostResponse,
     MyStatsResponse,
+    NotionConnectionResponse,
     WeeklySummaryNotionResponse,
     WeeklySummaryResponse,
 )
@@ -25,7 +26,12 @@ from backend.app.services.me import (
     summarize_area_accuracy,
     summarize_weekly_attempts,
 )
-from backend.app.services.notion import NotionAPIError, NotionConfigurationError, save_weekly_summary_to_notion_once
+from backend.app.services.notion import (
+    NotionAPIError,
+    NotionConnectionRequiredError,
+    save_weekly_summary_to_user_notion_once,
+)
+from backend.app.services.notion_oauth import get_user_notion_connection
 
 
 router = APIRouter(tags=["me"])
@@ -111,6 +117,24 @@ def read_my_weekly_summary(
     )
 
 
+@router.get("/me/notion-connection", response_model=NotionConnectionResponse)
+def read_my_notion_connection(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> NotionConnectionResponse:
+    connection = get_user_notion_connection(db, user)
+    if connection is None:
+        return NotionConnectionResponse(connected=False)
+
+    return NotionConnectionResponse(
+        connected=True,
+        workspace_id=connection.workspace_id,
+        workspace_name=connection.workspace_name,
+        workspace_icon=connection.workspace_icon,
+        default_page_id=connection.default_page_id,
+    )
+
+
 @router.post("/me/weekly-summary/notion", response_model=WeeklySummaryNotionResponse)
 def save_my_weekly_summary_to_notion(
     db: Session = Depends(get_db),
@@ -120,9 +144,9 @@ def save_my_weekly_summary_to_notion(
     weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
 
     try:
-        result = save_weekly_summary_to_notion_once(db, user, weekly_summary)
-    except NotionConfigurationError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        result = save_weekly_summary_to_user_notion_once(db, user, weekly_summary)
+    except NotionConnectionRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except NotionAPIError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 

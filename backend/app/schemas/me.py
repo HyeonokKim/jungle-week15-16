@@ -55,6 +55,14 @@ class WeeklySummaryNotionResponse(BaseModel):
     message: str
 
 
+class NotionConnectionResponse(BaseModel):
+    connected: bool
+    workspace_id: str | None = None
+    workspace_name: str | None = None
+    workspace_icon: str | None = None
+    default_page_id: str | None = None
+
+
 class MyStatsResponse(BaseModel):
     user_id: int
     nickname: str

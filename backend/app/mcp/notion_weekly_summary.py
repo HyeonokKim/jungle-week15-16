@@ -10,8 +10,8 @@ from backend.app.models.user import User
 from backend.app.services.me import get_weekly_attempts, summarize_weekly_attempts
 from backend.app.services.notion import (
     NotionAPIError,
-    NotionConfigurationError,
-    save_weekly_summary_to_notion_once,
+    NotionConnectionRequiredError,
+    save_weekly_summary_to_user_notion_once,
 )
 
 
@@ -46,7 +46,7 @@ def save_weekly_summary_to_notion_tool(
             return {"ok": False, "error": "사용자를 찾을 수 없습니다."}
 
         weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
-        result = save_weekly_summary_to_notion_once(db, user, weekly_summary)
+        result = save_weekly_summary_to_user_notion_once(db, user, weekly_summary)
         return {
             "ok": True,
             "message": "이미 저장된 이번 주 요약이에요." if result.already_saved else "이번 주 요약을 Notion에 저장했어요.",
@@ -57,7 +57,7 @@ def save_weekly_summary_to_notion_tool(
             "week_end": weekly_summary.week_end.isoformat(),
             "summary_text": weekly_summary.summary_text,
         }
-    except (NotionConfigurationError, NotionAPIError) as exc:
+    except (NotionConnectionRequiredError, NotionAPIError) as exc:
         return {"ok": False, "error": str(exc)}
     finally:
         db.close()

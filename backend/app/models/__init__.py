@@ -12,6 +12,7 @@ from backend.app.models.problem_embedding import ProblemEmbedding
 from backend.app.models.review_queue import ReviewQueue
 from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
+from backend.app.models.user_notion_connection import UserNotionConnection
 from backend.app.models.user_setting import UserSetting
 from backend.app.models.weekly_summary_export import WeeklySummaryExport
 
@@ -32,6 +33,7 @@ __all__ = [
     "ReviewQueue",
     "User",
     "UserDaily",
+    "UserNotionConnection",
     "UserSetting",
     "WeeklySummaryExport",
 ]

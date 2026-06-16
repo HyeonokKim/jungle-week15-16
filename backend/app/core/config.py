@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     notion_token: str | None = None
     notion_version: str = "2026-03-11"
     notion_page_id: str | None = None
+    notion_oauth_client_id: str | None = None
+    notion_oauth_client_secret: str | None = None
+    notion_oauth_redirect_uri: str = "http://127.0.0.1:8000/auth/notion/callback"
+    notion_token_encryption_key: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

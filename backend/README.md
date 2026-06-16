@@ -36,6 +36,10 @@ AI_EXPLANATION_CANDIDATE_COUNT=3
 NOTION_TOKEN=
 NOTION_VERSION=2026-03-11
 NOTION_PAGE_ID=
+NOTION_OAUTH_CLIENT_ID=
+NOTION_OAUTH_CLIENT_SECRET=
+NOTION_OAUTH_REDIRECT_URI=http://127.0.0.1:8000/auth/notion/callback
+NOTION_TOKEN_ENCRYPTION_KEY=
 ```
 
 `AUTH_DEV_MODE=true`일 때는 토큰이 없어도 개발 사용자(`id=1`)로 API를 사용할 수 있다. 실제 인증 흐름을 강제하려면 `AUTH_DEV_MODE=false`로 바꾼다.
@@ -76,6 +80,12 @@ curl -X PUT 'http://127.0.0.1:8000/settings/me' \
   -H 'Content-Type: application/json' \
   -d '{"problem_scope":"all_random","timer_limit_sec":180,"review_interval_days":3}'
 curl -X POST 'http://127.0.0.1:8000/me/weekly-summary/notion'
+```
+
+Notion OAuth를 사용하려면 `NOTION_TOKEN_ENCRYPTION_KEY`에 Fernet key를 넣는다.
+
+```bash
+python3 -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 ```
 
 ## 6. 2026년 문제 데이터 적재
