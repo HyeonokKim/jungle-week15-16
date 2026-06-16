@@ -33,6 +33,9 @@ OPENAI_API_KEY=
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 OPENAI_AI_EXPLANATION_MODEL=gpt-4o-mini
 AI_EXPLANATION_CANDIDATE_COUNT=3
+NOTION_TOKEN=
+NOTION_VERSION=2026-03-11
+NOTION_PAGE_ID=
 ```
 
 `AUTH_DEV_MODE=true`일 때는 토큰이 없어도 개발 사용자(`id=1`)로 API를 사용할 수 있다. 실제 인증 흐름을 강제하려면 `AUTH_DEV_MODE=false`로 바꾼다.
@@ -72,6 +75,7 @@ curl 'http://127.0.0.1:8000/settings/me'
 curl -X PUT 'http://127.0.0.1:8000/settings/me' \
   -H 'Content-Type: application/json' \
   -d '{"problem_scope":"all_random","timer_limit_sec":180,"review_interval_days":3}'
+curl -X POST 'http://127.0.0.1:8000/me/weekly-summary/notion'
 ```
 
 ## 6. 2026년 문제 데이터 적재

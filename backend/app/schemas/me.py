@@ -48,6 +48,12 @@ class WeeklySummaryResponse(BaseModel):
     summary_text: str
 
 
+class WeeklySummaryNotionResponse(BaseModel):
+    page_id: str
+    url: str | None
+    message: str
+
+
 class MyStatsResponse(BaseModel):
     user_id: int
     nickname: str

@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
@@ -13,6 +13,7 @@ from backend.app.schemas.me import (
     MyAttemptHistoryItemResponse,
     MyPostResponse,
     MyStatsResponse,
+    WeeklySummaryNotionResponse,
     WeeklySummaryResponse,
 )
 from backend.app.services.me import (
@@ -24,6 +25,7 @@ from backend.app.services.me import (
     summarize_area_accuracy,
     summarize_weekly_attempts,
 )
+from backend.app.services.notion import NotionAPIError, NotionConfigurationError, save_weekly_summary_to_notion
 
 
 router = APIRouter(tags=["me"])
@@ -106,6 +108,28 @@ def read_my_weekly_summary(
         weak_type=weekly_summary.weak_type,
         area_accuracy=[AreaAccuracyResponse(**item) for item in weekly_summary.area_accuracy],
         summary_text=weekly_summary.summary_text,
+    )
+
+
+@router.post("/me/weekly-summary/notion", response_model=WeeklySummaryNotionResponse)
+def save_my_weekly_summary_to_notion(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> WeeklySummaryNotionResponse:
+    today = date.today()
+    weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
+
+    try:
+        result = save_weekly_summary_to_notion(weekly_summary)
+    except NotionConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except NotionAPIError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return WeeklySummaryNotionResponse(
+        page_id=result.page_id,
+        url=result.url,
+        message="이번 주 요약을 Notion에 저장했어요.",
     )
 
 

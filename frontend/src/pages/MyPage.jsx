@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { fetchMyPosts, fetchMySettings, fetchMyStats, fetchMyWeeklySummary, updateMySettings } from "../api/client";
+import {
+  fetchMyPosts,
+  fetchMySettings,
+  fetchMyStats,
+  fetchMyWeeklySummary,
+  saveMyWeeklySummaryToNotion,
+  updateMySettings,
+} from "../api/client";
 import Avatar from "../components/Avatar";
 import Card from "../components/Card";
 import SettingOptionGroup from "../components/SettingOptionGroup";
@@ -88,6 +95,9 @@ export default function MyPage({ page, setPage }) {
   const [weeklySummary, setWeeklySummary] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState("");
+  const [notionSaving, setNotionSaving] = useState(false);
+  const [notionMessage, setNotionMessage] = useState("");
+  const [notionPageUrl, setNotionPageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -156,6 +166,21 @@ export default function MyPage({ page, setPage }) {
       setSettingsMessage(err.message);
     } finally {
       setSettingsSaving(false);
+    }
+  }
+
+  async function handleSaveWeeklySummaryToNotion() {
+    try {
+      setNotionSaving(true);
+      setNotionMessage("");
+      setNotionPageUrl("");
+      const result = await saveMyWeeklySummaryToNotion();
+      setNotionMessage(result.message);
+      setNotionPageUrl(result.url ?? "");
+    } catch (err) {
+      setNotionMessage(err.message);
+    } finally {
+      setNotionSaving(false);
     }
   }
 
@@ -297,11 +322,21 @@ export default function MyPage({ page, setPage }) {
                       : "불러오는 중"}
                   </p>
                 </div>
-                {weeklySummary?.weak_type && (
-                  <span className="rounded-md bg-paper px-3 py-2 text-xs font-black text-[#555]">
-                    {problemTypeLabels[weeklySummary.weak_type] ?? weeklySummary.weak_type}
-                  </span>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {weeklySummary?.weak_type && (
+                    <span className="rounded-md bg-paper px-3 py-2 text-xs font-black text-[#555]">
+                      {problemTypeLabels[weeklySummary.weak_type] ?? weeklySummary.weak_type}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    disabled={!weeklySummary || notionSaving}
+                    onClick={handleSaveWeeklySummaryToNotion}
+                    className="h-10 rounded-md border border-pepper px-4 text-sm font-black hover:bg-paper disabled:cursor-not-allowed disabled:border-ash disabled:bg-ash disabled:text-[#777]"
+                  >
+                    {notionSaving ? "저장 중..." : "Notion에 저장"}
+                  </button>
+                </div>
               </div>
               <p className="leet-text mt-4 text-sm font-black leading-6 text-[#555]">
                 {weeklySummary?.summary_text ?? "이번 주 학습 요약을 불러오는 중..."}
@@ -324,6 +359,15 @@ export default function MyPage({ page, setPage }) {
                   <p className="text-sm font-black">{formatDuration(weeklySummary?.average_solve_duration_sec)}</p>
                 </div>
               </div>
+              <p className="mt-3 min-h-5 text-sm font-black text-[#666]">
+                {notionPageUrl ? (
+                  <a href={notionPageUrl} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                    {notionMessage}
+                  </a>
+                ) : (
+                  notionMessage
+                )}
+              </p>
             </div>
           </div>
           <p className="mt-4 min-h-5 text-sm font-black text-[#666]">

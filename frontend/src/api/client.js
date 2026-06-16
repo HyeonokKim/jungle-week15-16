@@ -137,6 +137,12 @@ export function fetchMyWeeklySummary() {
   return request("/me/weekly-summary");
 }
 
+export function saveMyWeeklySummaryToNotion() {
+  return request("/me/weekly-summary/notion", {
+    method: "POST",
+  });
+}
+
 export function fetchMyStats() {
   return request("/stats/me");
 }

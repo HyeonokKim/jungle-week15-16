@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     openai_embedding_model: str = "text-embedding-3-small"
     openai_ai_explanation_model: str = "gpt-4o-mini"
     ai_explanation_candidate_count: int = 3
+    notion_token: str | None = None
+    notion_version: str = "2026-03-11"
+    notion_page_id: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
