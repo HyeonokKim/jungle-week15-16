@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.database import SessionLocal
 from backend.app.models.choice import Choice
-from backend.app.models.enums import ProblemArea
+from backend.app.models.enums import PROBLEM_TYPES_BY_AREA, ProblemArea, ProblemType
 from backend.app.models.exam import Exam
 from backend.app.models.passage import Passage
 from backend.app.models.problem import Problem
@@ -107,6 +107,10 @@ def validate_payload(path: Path, payload: dict[str, Any]) -> ImportSummary:
 
         if not isinstance(answer_index, int) or not 1 <= answer_index <= 5:
             errors.append(f"problem {number} has invalid answer_index: {answer_index}")
+        try:
+            parse_problem_type(problem.get("problem_type"), area, number)
+        except ValueError as exc:
+            errors.append(str(exc))
         if len(choices) != 5:
             errors.append(f"problem {number} must have 5 choices, got {len(choices)}")
         for choice in choices:
@@ -127,6 +131,20 @@ def validate_payload(path: Path, payload: dict[str, Any]) -> ImportSummary:
         passage_count=len(passages),
         choice_count=choice_count,
     )
+
+
+def parse_problem_type(value: Any, area: ProblemArea, problem_number: int) -> ProblemType | None:
+    if value in (None, ""):
+        return None
+
+    try:
+        problem_type = ProblemType(value)
+    except ValueError as exc:
+        raise ValueError(f"problem {problem_number} has invalid problem_type: {value}") from exc
+
+    if problem_type not in PROBLEM_TYPES_BY_AREA[area]:
+        raise ValueError(f"problem {problem_number} problem_type {value} is not allowed for {area.value}")
+    return problem_type
 
 
 def import_payload(db: Session, path: Path, payload: dict[str, Any], replace: bool) -> ImportSummary:
@@ -174,6 +192,7 @@ def import_payload(db: Session, path: Path, payload: dict[str, Any], replace: bo
             explanation=problem_data.get("explanation"),
             answer_index=int(problem_data["answer_index"]),
             area=area,
+            problem_type=parse_problem_type(problem_data.get("problem_type"), area, int(problem_data["number"])),
         )
         db.add(problem)
         db.flush()
@@ -220,6 +239,8 @@ def update_existing_text(db: Session, path: Path, payload: dict[str, Any]) -> Im
         problem.question_text = problem_data["question_text"]
         problem.explanation = problem_data.get("explanation")
         problem.answer_index = int(problem_data["answer_index"])
+        if "problem_type" in problem_data:
+            problem.problem_type = parse_problem_type(problem_data.get("problem_type"), area, int(problem_data["number"]))
 
         choices_by_idx = {choice.idx: choice for choice in problem.choices}
         for choice_data in problem_data["choices"]:

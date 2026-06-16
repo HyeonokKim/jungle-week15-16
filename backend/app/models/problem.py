@@ -4,7 +4,7 @@ from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, Text, UniqueC
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
-from backend.app.models.enums import ProblemArea
+from backend.app.models.enums import ProblemArea, ProblemType
 
 
 class Problem(Base):
@@ -22,6 +22,7 @@ class Problem(Base):
     explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     answer_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
     area: Mapped[ProblemArea] = mapped_column(Enum(ProblemArea, name="problem_area"), index=True)
+    problem_type: Mapped[ProblemType | None] = mapped_column(Enum(ProblemType, name="problem_type"), nullable=True, index=True)
 
     exam = relationship("Exam", back_populates="problems")
     passage = relationship("Passage", back_populates="problems")

@@ -19,4 +19,3 @@ class UserSettingsUpdate(BaseModel):
     problem_scope: ProblemScope | None = None
     timer_limit_sec: Literal[120, 180, 240] | None = None
     review_interval_days: Literal[3, 5, 7] | None = None
-    weak_type: str | None = None

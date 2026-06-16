@@ -31,6 +31,32 @@ const reviewOptions = [
   { label: "재노출 안 함", value: null },
 ];
 
+const problemTypeLabels = {
+  main_claim: "핵심 주장",
+  detail_matching: "세부 일치",
+  inference: "추론",
+  structure_analysis: "구조 파악",
+  conditional_reasoning: "조건 추론",
+  strengthen_weaken: "강화/약화",
+  error_identification: "오류 찾기",
+  principle_application: "원리 적용",
+  data_interpretation: "자료 해석",
+};
+
+const problemTypeAreaLabels = {
+  main_claim: "언어이해",
+  detail_matching: "언어이해",
+  inference: "언어이해",
+  structure_analysis: "언어이해",
+  conditional_reasoning: "추리논증",
+  strengthen_weaken: "추리논증",
+  error_identification: "추리논증",
+  principle_application: "추리논증",
+  data_interpretation: "추리논증",
+};
+
+const POSTS_PER_PAGE = 5;
+
 function formatDate(value) {
   if (!value) {
     return "-";
@@ -44,6 +70,7 @@ function formatDate(value) {
 
 export default function MyPage({ page, setPage }) {
   const [posts, setPosts] = useState([]);
+  const [postPage, setPostPage] = useState(1);
   const [stats, setStats] = useState(null);
   const [settings, setSettings] = useState(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -64,6 +91,7 @@ export default function MyPage({ page, setPage }) {
         ]);
         if (!ignore) {
           setPosts(postData);
+          setPostPage(1);
           setStats(statData);
           setSettings(settingData);
           setError("");
@@ -87,6 +115,21 @@ export default function MyPage({ page, setPage }) {
 
   const readingAccuracy = stats?.area_accuracy.find((item) => item.area === "reading_comprehension")?.accuracy_rate ?? 0;
   const reasoningAccuracy = stats?.area_accuracy.find((item) => item.area === "reasoning_argumentation")?.accuracy_rate ?? 0;
+  const weakTypeLabel = problemTypeLabels[settings?.weak_type] ?? null;
+  const weakTypeAreaLabel = problemTypeAreaLabels[settings?.weak_type] ?? null;
+  const totalPostPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
+  const normalizedPostPage = Math.min(postPage, totalPostPages);
+  const visiblePosts = posts.slice(
+    (normalizedPostPage - 1) * POSTS_PER_PAGE,
+    normalizedPostPage * POSTS_PER_PAGE,
+  );
+  const pageNumbers = Array.from({ length: totalPostPages }, (_, index) => index + 1).filter(
+    (pageNumber) =>
+      totalPostPages <= 5 ||
+      pageNumber === 1 ||
+      pageNumber === totalPostPages ||
+      Math.abs(pageNumber - normalizedPostPage) <= 1,
+  );
 
   async function handleSettingsChange(payload) {
     try {
@@ -128,22 +171,71 @@ export default function MyPage({ page, setPage }) {
           ) : posts.length === 0 ? (
             <div className="rounded-md border border-ash p-5 text-sm font-black">아직 작성한 추론 게시글이 없어요.</div>
           ) : (
-            <div className="overflow-hidden rounded-md border border-ash">
-              {posts.map((post) => (
-                <button
-                  key={post.id}
-                  onClick={() => setPage("board")}
-                  className="grid w-full gap-3 border-b border-ash px-5 py-4 text-left last:border-b-0 md:grid-cols-[1fr_100px_80px_120px] md:items-center"
-                >
-                  <strong>{post.title}</strong>
-                  <span className="rounded-md bg-ash px-3 py-2 text-center text-xs font-black">{areaLabels[post.area]}</span>
-                  <span className={post.is_correct ? "font-black text-pepper" : "font-black text-[#777]"}>
-                    {post.is_correct ? "정답" : "오답"}
-                  </span>
-                  <span className="text-sm text-[#666]">{formatDate(post.created_at)}</span>
-                </button>
-              ))}
-            </div>
+            <>
+              <div className="overflow-hidden rounded-md border border-ash">
+                {visiblePosts.map((post) => (
+                  <button
+                    key={post.id}
+                    onClick={() => setPage("board")}
+                    className="grid w-full gap-3 border-b border-ash px-5 py-4 text-left last:border-b-0 md:grid-cols-[1fr_100px_80px_120px] md:items-center"
+                  >
+                    <strong>{post.title}</strong>
+                    <span className="rounded-md bg-ash px-3 py-2 text-center text-xs font-black">{areaLabels[post.area]}</span>
+                    <span className={post.is_correct ? "font-black text-pepper" : "font-black text-[#777]"}>
+                      {post.is_correct ? "정답" : "오답"}
+                    </span>
+                    <span className="text-sm text-[#666]">{formatDate(post.created_at)}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm font-black text-[#666]">
+                  총 {posts.length}개 중 {(normalizedPostPage - 1) * POSTS_PER_PAGE + 1}-
+                  {Math.min(normalizedPostPage * POSTS_PER_PAGE, posts.length)}개 표시
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={normalizedPostPage === 1}
+                    onClick={() => setPostPage((current) => Math.max(1, current - 1))}
+                    className="h-10 rounded-md border border-smoke px-4 text-sm font-black hover:bg-paper disabled:cursor-not-allowed disabled:bg-ash disabled:text-[#777]"
+                  >
+                    이전
+                  </button>
+                  {pageNumbers.map((pageNumber, index) => {
+                    const previousPageNumber = pageNumbers[index - 1];
+                    const showGap = previousPageNumber && pageNumber - previousPageNumber > 1;
+                    return (
+                      <div key={pageNumber} className="flex gap-2">
+                        {showGap && (
+                          <span className="grid h-10 w-8 place-items-center text-sm font-black text-[#777]">...</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setPostPage(pageNumber)}
+                          className={`h-10 min-w-10 rounded-md border px-3 text-sm font-black ${
+                            normalizedPostPage === pageNumber
+                              ? "border-pepper bg-pepper text-white"
+                              : "border-smoke hover:bg-paper"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    disabled={normalizedPostPage === totalPostPages}
+                    onClick={() => setPostPage((current) => Math.min(totalPostPages, current + 1))}
+                    className="h-10 rounded-md border border-smoke px-4 text-sm font-black hover:bg-paper disabled:cursor-not-allowed disabled:bg-ash disabled:text-[#777]"
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </Card>
 
@@ -169,7 +261,17 @@ export default function MyPage({ page, setPage }) {
               options={reviewOptions}
               onChange={(review_interval_days) => handleSettingsChange({ review_interval_days })}
             />
-            <Stat label="취약 유형" value="추후 추가" className="opacity-50" />
+            <div className="rounded-md border border-smoke bg-white px-4 py-3">
+              <p className="text-xs font-medium text-[#666]">취약 유형</p>
+              {weakTypeLabel ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="rounded-md bg-pepper px-3 py-2 text-sm font-black text-white">{weakTypeLabel}</span>
+                  <span className="rounded-md bg-paper px-3 py-2 text-xs font-black text-[#555]">{weakTypeAreaLabel}</span>
+                </div>
+              ) : (
+                <p className="mt-1 text-xl font-black text-[#777]">풀이 기록 없음</p>
+              )}
+            </div>
             <Stat label="이번 주 요약" value="추후 추가" className="opacity-50" />
           </div>
           <p className="mt-4 min-h-5 text-sm font-black text-[#666]">

@@ -7,6 +7,7 @@ from backend.app.models.user import User
 from backend.app.models.user_setting import UserSetting
 from backend.app.schemas.settings import UserSettingsResponse, UserSettingsUpdate
 from backend.app.services.settings import get_or_create_user_settings, update_user_settings
+from backend.app.services.weakness import refresh_user_weak_type
 
 
 router = APIRouter(tags=["settings"])
@@ -29,7 +30,8 @@ def read_my_settings(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> UserSettingsResponse:
-    setting = get_or_create_user_settings(db, user)
+    get_or_create_user_settings(db, user)
+    setting = refresh_user_weak_type(db, user, commit=True)
     return serialize_user_settings(setting)
 
 
@@ -40,4 +42,5 @@ def update_my_settings(
     user: User = Depends(get_current_user),
 ) -> UserSettingsResponse:
     setting = get_or_create_user_settings(db, user)
-    return serialize_user_settings(update_user_settings(db, setting, payload))
+    update_user_settings(db, setting, payload)
+    return serialize_user_settings(refresh_user_weak_type(db, user, commit=True))

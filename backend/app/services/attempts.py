@@ -10,6 +10,7 @@ from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
 from backend.app.services.review import resolve_due_review_if_present, schedule_review_if_needed
 from backend.app.services.settings import get_or_create_user_settings
+from backend.app.services.weakness import refresh_user_weak_type
 
 
 def submit_attempt(
@@ -65,6 +66,8 @@ def submit_attempt(
                 is_correct=is_correct,
             )
         )
+
+    refresh_user_weak_type(db, user)
 
     db.commit()
     db.refresh(attempt)

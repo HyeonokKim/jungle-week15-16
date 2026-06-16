@@ -35,3 +35,9 @@ textarea:focus-visible {
     #ffffff;
   background-size: 18px 18px;
 }
+
+.leet-text {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
