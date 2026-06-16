@@ -133,6 +133,22 @@ python3 -m backend.app.services.smoke_mvp
 
 이 검증은 데일리 문제 배정, 제출/채점, 게시판 자동 등록, 내 게시글/시도 기록, 추가 연습, 오답 복습 큐 생성과 해결까지 확인한다.
 
+## MCP Notion 저장 도구
+
+LLM 앱에서 이번 주 요약을 Notion에 저장하려면 MCP stdio 서버를 실행한다. 이 서버는 기존 DB와 `NOTION_TOKEN`, `NOTION_PAGE_ID` 설정을 그대로 사용한다.
+
+```bash
+python3 -m backend.app.mcp.notion_weekly_summary
+```
+
+노출 도구:
+
+- `save_weekly_summary_to_notion_tool`
+  - `user_id`: 저장 대상 사용자 ID, 개발 기본값은 `1`
+  - `target_date`: 선택 값, `YYYY-MM-DD` 형식이며 해당 날짜가 포함된 주차를 저장
+
+Claude Desktop 같은 MCP host에는 위 명령을 stdio 서버로 등록한다. STDIO MCP 서버는 stdout을 JSON-RPC 통신에 사용하므로, 서버 코드에서 일반 로그를 stdout에 쓰면 안 된다.
+
 ## 다음 단계
 
 Google OAuth Client ID/Secret을 `.env`에 넣은 뒤 브라우저에서 실제 로그인 콜백을 검증한다.
