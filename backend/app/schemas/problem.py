@@ -16,6 +16,7 @@ class ProblemResponse(BaseModel):
     question_text: str
     passage: str | None
     choices: list[ChoiceResponse]
+    similarity_score: int | None = None
 
 
 class DailyProblemResponse(BaseModel):

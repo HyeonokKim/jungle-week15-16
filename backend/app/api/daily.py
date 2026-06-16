@@ -36,7 +36,7 @@ def build_daily_response(daily: UserDaily) -> DailyProblemResponse:
     )
 
 
-def build_problem_response(problem: Problem) -> ProblemResponse:
+def build_problem_response(problem: Problem, similarity_score: int | None = None) -> ProblemResponse:
     return ProblemResponse(
         id=problem.id,
         year=problem.exam.year,
@@ -46,4 +46,5 @@ def build_problem_response(problem: Problem) -> ProblemResponse:
         question_text=problem.question_text,
         passage=problem.passage.content if problem.passage else None,
         choices=[ChoiceResponse(id=choice.id, idx=choice.idx, content=choice.content) for choice in problem.choices],
+        similarity_score=similarity_score,
     )

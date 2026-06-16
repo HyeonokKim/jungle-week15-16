@@ -8,7 +8,7 @@ from backend.app.core.database import get_db
 from backend.app.core.dependencies import get_current_user
 from backend.app.models.user import User
 from backend.app.schemas.problem import ProblemResponse
-from backend.app.services.daily import select_next_practice_problem
+from backend.app.services.daily import select_next_practice_problem_selection
 
 
 router = APIRouter(prefix="/practice", tags=["practice"])
@@ -20,7 +20,7 @@ def get_next_practice_problem(
     user: User = Depends(get_current_user),
 ) -> ProblemResponse:
     try:
-        problem = select_next_practice_problem(db, user, date.today())
+        selection = select_next_practice_problem_selection(db, user, date.today())
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return build_problem_response(problem)
+    return build_problem_response(selection.problem, similarity_score=selection.similarity_score)

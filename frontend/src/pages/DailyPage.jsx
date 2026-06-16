@@ -132,6 +132,13 @@ export default function DailyPage({ page, setPage }) {
   const timerPercent = timerLimitSec > 0 ? (remainingSec / timerLimitSec) * 100 : 0;
   const timerExpired = remainingSec === 0;
   const problemContentStyle = problemContentWidth ? { width: `${problemContentWidth}px` } : undefined;
+  const similarityTag =
+    mode === "practice" && typeof problem?.similarity_score === "number"
+      ? `오늘 문제와 관련도 ${problem.similarity_score}%`
+      : null;
+  const problemTags = problem
+    ? [areaLabel, `${problem.year}학년도`, `${problem.number}번`, similarityTag, `${Math.round(timerLimitSec / 60)}분 제한`].filter(Boolean)
+    : [];
 
   useEffect(() => {
     if (!problem || result || remainingSec <= 0) {
@@ -259,7 +266,7 @@ export default function DailyPage({ page, setPage }) {
               </div>
 
               <div className="mb-5 flex flex-wrap gap-3">
-                {[areaLabel, `${problem.year}학년도`, `${problem.number}번`, `${Math.round(timerLimitSec / 60)}분 제한`].map((tag) => (
+                {problemTags.map((tag) => (
                   <span key={tag} className="rounded-md bg-ash px-4 py-2 text-xs font-black">
                     {tag}
                   </span>

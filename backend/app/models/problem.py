@@ -30,3 +30,4 @@ class Problem(Base):
     daily_assignments = relationship("UserDaily", back_populates="problem")
     board_posts = relationship("BoardPost", back_populates="problem", cascade="all, delete-orphan")
     review_queue_items = relationship("ReviewQueue", back_populates="problem", cascade="all, delete-orphan")
+    embedding = relationship("ProblemEmbedding", back_populates="problem", cascade="all, delete-orphan", uselist=False)

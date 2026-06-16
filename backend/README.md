@@ -29,6 +29,8 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=http://127.0.0.1:8000/auth/google/callback
 JWT_SECRET_KEY=change-me-in-env
+OPENAI_API_KEY=
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 `AUTH_DEV_MODE=true`일 때는 토큰이 없어도 개발 사용자(`id=1`)로 API를 사용할 수 있다. 실제 인증 흐름을 강제하려면 `AUTH_DEV_MODE=false`로 바꾼다.
@@ -92,16 +94,25 @@ python3 -m backend.app.services.import_leet_data
 python3 -m backend.app.services.import_leet_data --replace
 ```
 
+추가 연습 문제를 오늘의 문제와 유사한 문제로 추천하려면 문제 적재 후 임베딩을 생성한다. `--dry-run`은 OpenAI API를 호출하지 않고 생성/갱신 대상만 확인한다.
+
+```bash
+python3 -m backend.app.services.problem_embeddings --dry-run
+python3 -m backend.app.services.problem_embeddings
+```
+
 ## 현재 작성된 스키마
 
 - `users`
 - `exams`
 - `passages`
 - `problems`
+- `problem_embeddings`
 - `choices`
 - `attempts`
 - `user_daily`
 - `board_posts`
+- `board_comments`
 - `user_settings`
 - `review_queue`
 

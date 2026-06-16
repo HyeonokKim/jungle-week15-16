@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import Select, func, select
@@ -9,8 +10,15 @@ from backend.app.models.exam import Exam
 from backend.app.models.problem import Problem
 from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
+from backend.app.services.problem_embeddings import select_similar_practice_problem
 from backend.app.services.review import get_due_review_item
 from backend.app.services.settings import get_or_create_user_settings
+
+
+@dataclass(frozen=True)
+class PracticeProblemSelection:
+    problem: Problem
+    similarity_score: int | None = None
 
 
 def get_or_assign_daily_problem(db: Session, user: User, today: date) -> UserDaily:
@@ -81,9 +89,32 @@ def select_next_problem(db: Session, user: User, problem_scope: ProblemScope) ->
 
 
 def select_next_practice_problem(db: Session, user: User, today: date) -> Problem:
+    return select_next_practice_problem_selection(db, user, today).problem
+
+
+def select_next_practice_problem_selection(db: Session, user: User, today: date) -> PracticeProblemSelection:
     setting = get_or_create_user_settings(db, user)
+    daily = get_or_assign_daily_problem(db, user, today)
+    recommendation = select_similar_practice_problem(db, user, daily.problem, setting.problem_scope, today)
+    if recommendation:
+        return PracticeProblemSelection(
+            problem=recommendation.problem,
+            similarity_score=recommendation.similarity_score,
+        )
+
+    return PracticeProblemSelection(
+        problem=select_next_practice_problem_by_progress(db, user, today, setting.problem_scope),
+    )
+
+
+def select_next_practice_problem_by_progress(
+    db: Session,
+    user: User,
+    today: date,
+    problem_scope: ProblemScope,
+) -> Problem:
     target_area = get_next_area(db, user)
-    problem = find_unattempted_problem(db, user, target_area, setting.problem_scope, exclude_daily_date=today)
+    problem = find_unattempted_problem(db, user, target_area, problem_scope, exclude_daily_date=today)
     if problem:
         return problem
 
@@ -92,7 +123,7 @@ def select_next_practice_problem(db: Session, user: User, today: date) -> Proble
         if target_area == ProblemArea.reading_comprehension
         else ProblemArea.reading_comprehension
     )
-    problem = find_unattempted_problem(db, user, fallback_area, setting.problem_scope, exclude_daily_date=today)
+    problem = find_unattempted_problem(db, user, fallback_area, problem_scope, exclude_daily_date=today)
     if problem:
         return problem
 

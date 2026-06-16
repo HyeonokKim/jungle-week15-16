@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-me-in-env"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
+    openai_api_key: str | None = None
+    openai_embedding_model: str = "text-embedding-3-small"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

@@ -7,6 +7,7 @@ from backend.app.models.enums import ProblemArea, ProblemScope
 from backend.app.models.exam import Exam
 from backend.app.models.passage import Passage
 from backend.app.models.problem import Problem
+from backend.app.models.problem_embedding import ProblemEmbedding
 from backend.app.models.review_queue import ReviewQueue
 from backend.app.models.user import User
 from backend.app.models.user_daily import UserDaily
@@ -22,6 +23,7 @@ __all__ = [
     "Passage",
     "Problem",
     "ProblemArea",
+    "ProblemEmbedding",
     "ProblemScope",
     "ReviewQueue",
     "User",
