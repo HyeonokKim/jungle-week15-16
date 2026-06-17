@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  deleteMyProblemActivity,
   fetchNotionLoginUrl,
   fetchMyNotionConnection,
   fetchMyPosts,
@@ -103,43 +104,52 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
   const [notionSaving, setNotionSaving] = useState(false);
   const [notionMessage, setNotionMessage] = useState("");
   const [notionPageUrl, setNotionPageUrl] = useState("");
+  const [deletingPostId, setDeletingPostId] = useState(null);
+  const [postMessage, setPostMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  async function loadMyPage({ resetPage = false, showLoading = true } = {}) {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      const [postData, statData, settingData, weeklySummaryData, notionConnectionData] = await Promise.all([
+        fetchMyPosts(),
+        fetchMyStats(),
+        fetchMySettings(),
+        fetchMyWeeklySummary(),
+        fetchMyNotionConnection(),
+      ]);
+      setPosts(postData);
+      if (resetPage) {
+        setPostPage(1);
+      }
+      setStats(statData);
+      setSettings(settingData);
+      setWeeklySummary(weeklySummaryData);
+      setNotionConnection(notionConnectionData);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }
 
   useEffect(() => {
     let ignore = false;
 
-    async function loadMyPage() {
-      try {
-        setLoading(true);
-        const [postData, statData, settingData, weeklySummaryData, notionConnectionData] = await Promise.all([
-          fetchMyPosts(),
-          fetchMyStats(),
-          fetchMySettings(),
-          fetchMyWeeklySummary(),
-          fetchMyNotionConnection(),
-        ]);
-        if (!ignore) {
-          setPosts(postData);
-          setPostPage(1);
-          setStats(statData);
-          setSettings(settingData);
-          setWeeklySummary(weeklySummaryData);
-          setNotionConnection(notionConnectionData);
-          setError("");
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError(err.message);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+    async function loadInitialMyPage() {
+      if (ignore) {
+        return;
       }
+      await loadMyPage({ resetPage: true });
     }
 
-    loadMyPage();
+    loadInitialMyPage();
     return () => {
       ignore = true;
     };
@@ -200,6 +210,24 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
     }
   }
 
+  async function handleConnectNotion() {
+    try {
+      setNotionConnecting(true);
+      setNotionMessage("");
+      const result = await fetchNotionLoginUrl();
+      if (!result.url) {
+        throw new Error("Notion 연결 URL을 받지 못했어요.");
+      }
+      window.location.assign(result.url);
+      window.setTimeout(() => {
+        setNotionConnecting(false);
+      }, 3000);
+    } catch (err) {
+      setNotionMessage(err.message);
+      setNotionConnecting(false);
+    }
+  }
+
   async function handleSaveWeeklySummaryToNotion() {
     if (!notionConnection?.connected) {
       setNotionMessage("Notion을 먼저 연결해 주세요.");
@@ -223,21 +251,23 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
     }
   }
 
-  async function handleConnectNotion() {
+  async function handleDeleteMyPost(post, event) {
+    event.stopPropagation();
+    if (!window.confirm("이 추론 게시글을 삭제할까요?")) {
+      return;
+    }
+
     try {
-      setNotionConnecting(true);
-      setNotionMessage("");
-      const result = await fetchNotionLoginUrl();
-      if (!result.url) {
-        throw new Error("Notion 연결 URL을 받지 못했어요.");
-      }
-      window.location.assign(result.url);
-      window.setTimeout(() => {
-        setNotionConnecting(false);
-      }, 3000);
+      setDeletingPostId(post.id);
+      setPostMessage("");
+      await deleteMyProblemActivity(post.problem_id);
+      setPosts((current) => current.filter((item) => item.id !== post.id));
+      await loadMyPage({ showLoading: false });
+      setPostMessage("게시글을 삭제했어요.");
     } catch (err) {
-      setNotionMessage(err.message);
-      setNotionConnecting(false);
+      setPostMessage(err.message);
+    } finally {
+      setDeletingPostId(null);
     }
   }
 
@@ -276,6 +306,7 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
               />
             </label>
           </div>
+          {postMessage && <p className="mb-3 min-h-5 text-sm font-black text-[#666]">{postMessage}</p>}
           {loading ? (
             <div className="rounded-md border border-ash p-5 text-sm font-black">학습 게시글을 불러오는 중...</div>
           ) : error ? (
@@ -288,18 +319,35 @@ export default function MyPage({ page, setPage, onOpenBoardProblem, notionCallba
             <>
               <div className="overflow-hidden rounded-md border border-ash">
                 {visiblePosts.map((post) => (
-                  <button
+                  <div
                     key={post.id}
-                    onClick={() => onOpenBoardProblem(post.problem_id)}
-                    className="grid w-full gap-3 border-b border-ash px-5 py-4 text-left last:border-b-0 md:grid-cols-[1fr_100px_80px_120px] md:items-center"
+                    className="grid w-full gap-3 border-b border-ash px-5 py-4 text-left last:border-b-0 md:grid-cols-[1fr_100px_80px_150px] md:items-center"
                   >
-                    <strong>{post.title}</strong>
+                    <button
+                      type="button"
+                      onClick={() => onOpenBoardProblem(post.problem_id)}
+                      className="text-left font-black hover:underline hover:underline-offset-4"
+                    >
+                      {post.title}
+                    </button>
                     <span className="rounded-md bg-ash px-3 py-2 text-center text-xs font-black">{areaLabels[post.area]}</span>
                     <span className={post.is_correct ? "font-black text-pepper" : "font-black text-[#777]"}>
                       {post.is_correct ? "정답" : "오답"}
                     </span>
-                    <span className="text-sm text-[#666]">{formatDate(post.created_at)}</span>
-                  </button>
+                    <span className="flex items-center gap-2 text-sm text-[#666]">
+                      {formatDate(post.created_at)}
+                      <button
+                        type="button"
+                        disabled={deletingPostId === post.id}
+                        onClick={(event) => handleDeleteMyPost(post, event)}
+                        className="grid h-8 w-8 place-items-center rounded-md border border-smoke text-sm hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label="내 학습 게시글 삭제"
+                        title="내 학습 게시글 삭제"
+                      >
+                        🗑️
+                      </button>
+                    </span>
+                  </div>
                 ))}
               </div>
 

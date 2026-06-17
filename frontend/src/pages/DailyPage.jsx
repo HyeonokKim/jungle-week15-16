@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import {
+  deleteMyProblemActivity,
   fetchDailyProblem,
   fetchMyAttemptHistory,
   fetchMySettings,
@@ -42,7 +43,7 @@ function formatAttemptLabel(attempt) {
   return `[${status}] ${attempt.title} [${mode}]`;
 }
 
-export default function DailyPage({ page, setPage }) {
+export default function DailyPage({ page, setPage, onOpenBoardProblem }) {
   const [daily, setDaily] = useState(null);
   const [mode, setMode] = useState("daily");
   const [selectedIndex, setSelectedIndex] = useState(null);
@@ -55,6 +56,8 @@ export default function DailyPage({ page, setPage }) {
   const [completedToday, setCompletedToday] = useState(false);
   const [attemptHistory, setAttemptHistory] = useState([]);
   const [attemptHistoryLoading, setAttemptHistoryLoading] = useState(true);
+  const [deletingAttemptProblemId, setDeletingAttemptProblemId] = useState(null);
+  const [attemptHistoryMessage, setAttemptHistoryMessage] = useState("");
   const [timerLimitSec, setTimerLimitSec] = useState(180);
   const [remainingSec, setRemainingSec] = useState(180);
   const [loading, setLoading] = useState(true);
@@ -245,6 +248,41 @@ export default function DailyPage({ page, setPage }) {
     }
   }
 
+  async function handleDeleteAttemptHistory(attempt) {
+    if (!window.confirm("이 문제의 풀이 기록과 추론 게시글을 삭제할까요?")) {
+      return;
+    }
+
+    try {
+      setDeletingAttemptProblemId(attempt.problem_id);
+      setAttemptHistoryMessage("");
+      await deleteMyProblemActivity(attempt.problem_id);
+      const [historyData, statData, dailyData] = await Promise.all([
+        fetchMyAttemptHistory(),
+        fetchMyStats(),
+        fetchDailyProblem(),
+      ]);
+      setAttemptHistory(historyData);
+      setStats(statData);
+      setCompletedToday(dailyData.completed);
+      if (mode === "daily" && daily?.problem?.id === attempt.problem_id) {
+        setDaily(dailyData);
+      }
+      if (daily?.problem?.id === attempt.problem_id) {
+        setSelectedIndex(null);
+        setReasoning("");
+        setResult(null);
+        setAiExplanation(null);
+        setAiExplanationError("");
+      }
+      setAttemptHistoryMessage("풀이 기록과 추론 게시글을 삭제했어요.");
+    } catch (err) {
+      setAttemptHistoryMessage(err.message);
+    } finally {
+      setDeletingAttemptProblemId(null);
+    }
+  }
+
   async function handleGenerateAIExplanation() {
     if (!result?.attempt_id) {
       return;
@@ -284,6 +322,11 @@ export default function DailyPage({ page, setPage }) {
 
           <Card className="p-7">
             <h2 className="mb-7 text-lg font-black">날짜별 푼 문제</h2>
+            {attemptHistoryMessage && (
+              <p className="mb-4 rounded-md border border-smoke bg-paper px-3 py-2 text-xs font-black text-[#666]">
+                {attemptHistoryMessage}
+              </p>
+            )}
             {attemptHistoryLoading ? (
               <p className="rounded-md border border-smoke p-4 text-sm font-black text-[#666]">풀이 기록을 불러오는 중...</p>
             ) : attemptHistory.length === 0 ? (
@@ -296,9 +339,25 @@ export default function DailyPage({ page, setPage }) {
                     <p className="mb-3 text-xl font-black">{day.date}</p>
                     <div className="space-y-2">
                       {day.attempts.map((attempt) => (
-                        <p key={attempt.id} className="text-xs font-black leading-5">
-                          {formatAttemptLabel(attempt)}
-                        </p>
+                        <div key={attempt.id} className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onOpenBoardProblem(attempt.problem_id)}
+                            className="min-w-0 text-left text-xs font-black leading-5 hover:underline hover:underline-offset-4"
+                          >
+                            {formatAttemptLabel(attempt)}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingAttemptProblemId === attempt.problem_id}
+                            onClick={() => handleDeleteAttemptHistory(attempt)}
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-smoke text-xs hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label="풀이 기록 삭제"
+                            title="풀이 기록 삭제"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>

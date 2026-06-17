@@ -69,5 +69,5 @@ export default function App() {
     );
   }
 
-  return <DailyPage page={page} setPage={navigatePage} />;
+  return <DailyPage page={page} setPage={navigatePage} onOpenBoardProblem={openProblemBoard} />;
 }

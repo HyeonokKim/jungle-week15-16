@@ -97,22 +97,15 @@ export default function BoardPage({ page, setPage, selectedProblemId }) {
   }
 
   async function handlePostDelete(postId) {
-    if (!problem || !window.confirm("이 추론 게시글을 삭제할까요?")) {
+    if (!problem || !window.confirm("이 문제의 풀이 기록과 추론 게시글을 삭제할까요?")) {
       return;
     }
 
     try {
       setPostActionId(postId);
       await deleteBoardPost({ problemId: problem.id, postId });
-      setBoard((current) => {
-        if (!current) {
-          return current;
-        }
-        return {
-          ...current,
-          posts: current.posts.filter((post) => post.id !== postId),
-        };
-      });
+      setBoard(null);
+      setError("이 문제의 풀이 기록이 삭제되어 게시판을 볼 수 없어요.");
       if (editingPostId === postId) {
         cancelEdit();
       }

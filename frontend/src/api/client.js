@@ -139,6 +139,12 @@ export function deleteBoardPost({ problemId, postId }) {
   });
 }
 
+export function deleteMyProblemActivity(problemId) {
+  return request(`/me/problems/${problemId}/activity`, {
+    method: "DELETE",
+  });
+}
+
 export function createBoardComment({ problemId, postId, content }) {
   return request(`/problems/${problemId}/board/posts/${postId}/comments`, {
     method: "POST",

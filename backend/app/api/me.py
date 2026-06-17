@@ -26,6 +26,7 @@ from backend.app.services.me import (
     summarize_area_accuracy,
     summarize_weekly_attempts,
 )
+from backend.app.services.board import delete_user_problem_activity
 from backend.app.services.notion import (
     NotionAPIError,
     NotionConnectionRequiredError,
@@ -92,6 +93,22 @@ def read_my_attempt_history(
         )
         for date_key, day_attempts in grouped.items()
     ]
+
+
+@router.delete("/me/problems/{problem_id}/activity")
+def delete_my_problem_activity(
+    problem_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, bool]:
+    try:
+        delete_user_problem_activity(db, user, problem_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    return {"ok": True}
 
 
 @router.get("/me/weekly-summary", response_model=WeeklySummaryResponse)
