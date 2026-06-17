@@ -24,11 +24,6 @@ export default function LoginPage({ authMessage, setAuthMessage, setPage }) {
     }
   }
 
-  function handleDevMode() {
-    setAuthMessage("");
-    setPage("daily");
-  }
-
   return (
     <Shell page="login" setPage={setPage}>
       <div className="grid min-h-[calc(100vh-11rem)] place-items-center px-4 py-8 sm:px-6 sm:py-12 lg:min-h-[680px]">
@@ -52,13 +47,6 @@ export default function LoginPage({ authMessage, setAuthMessage, setPage }) {
             className="min-h-12 w-full rounded-md bg-pepper px-4 py-3 text-sm font-black text-white hover:bg-[#444] disabled:cursor-not-allowed disabled:bg-smoke"
           >
             {loginLoading ? "Google 로그인 준비 중..." : "Google로 로그인하기"}
-          </button>
-
-          <button
-            onClick={handleDevMode}
-            className="mt-4 min-h-12 w-full rounded-md border border-smoke bg-white px-4 py-3 text-sm font-black text-pepper hover:bg-paper"
-          >
-            개발 모드로 둘러보기
           </button>
         </Card>
       </div>
