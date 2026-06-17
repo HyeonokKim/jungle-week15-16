@@ -1,0 +1,28 @@
+from pydantic import BaseModel, Field, field_validator
+
+from backend.app.schemas.problem import ProblemStatsResponse
+
+
+class AttemptCreate(BaseModel):
+    problem_id: int = Field(gt=0)
+    selected_index: int = Field(ge=1, le=5)
+    reasoning: str
+    solve_duration_sec: int | None = Field(default=None, ge=0)
+
+    @field_validator("reasoning")
+    @classmethod
+    def reasoning_must_not_be_blank(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("reasoning is required")
+        return stripped
+
+
+class AttemptResultResponse(BaseModel):
+    attempt_id: int
+    problem_id: int
+    selected_index: int
+    answer_index: int
+    is_correct: bool
+    explanation: str | None
+    problem_stats: ProblemStatsResponse

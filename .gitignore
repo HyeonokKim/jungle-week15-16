@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 대용량 스캔 문제 PDF(2022·2023, 각 13~18MB)는 git에 넣지 않는다.
+# OCR 보강(data/ocr/*.txt)용 로컬 원본일 뿐이고, 정답표 PDF와 정답 override는 커밋된다.
+data/reading_comprehension/2022_reading.pdf
+data/reading_comprehension/2023_reading.pdf
+data/reasoning_argumentation/2022_reasoning.pdf
+data/reasoning_argumentation/2023_reasoning.pdf

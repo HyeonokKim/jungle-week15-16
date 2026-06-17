@@ -1,0 +1,197 @@
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from backend.app.core.database import get_db
+from backend.app.core.dependencies import get_current_user
+from backend.app.models.attempt import Attempt
+from backend.app.models.user import User
+from backend.app.schemas.me import (
+    AreaAccuracyResponse,
+    MyAttemptHistoryDayResponse,
+    MyAttemptHistoryItemResponse,
+    MyPostResponse,
+    MyStatsResponse,
+    NotionConnectionResponse,
+    WeeklySummaryNotionResponse,
+    WeeklySummaryResponse,
+)
+from backend.app.services.me import (
+    calculate_accuracy,
+    get_my_attempts,
+    get_my_posts,
+    get_recent_attempt_history,
+    get_weekly_attempts,
+    summarize_area_accuracy,
+    summarize_weekly_attempts,
+)
+from backend.app.services.board import delete_user_problem_activity
+from backend.app.services.notion import (
+    NotionAPIError,
+    NotionConnectionRequiredError,
+    save_weekly_summary_to_user_notion_once,
+)
+from backend.app.services.notion_oauth import get_user_notion_connection
+
+
+router = APIRouter(tags=["me"])
+
+AREA_LABELS = {
+    "reading_comprehension": "언어이해",
+    "reasoning_argumentation": "추리논증",
+}
+
+
+@router.get("/me/posts", response_model=list[MyPostResponse])
+def read_my_posts(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[MyPostResponse]:
+    posts = get_my_posts(db, user)
+    return [
+        MyPostResponse(
+            id=post.id,
+            problem_id=post.problem_id,
+            title=f"{post.problem.exam.year}학년도 {AREA_LABELS[post.problem.area.value]} {post.problem.number}번",
+            area=post.problem.area.value,
+            selected_index=post.selected_index,
+            is_correct=post.is_correct,
+            created_at=post.created_at.isoformat(),
+        )
+        for post in posts
+    ]
+
+
+@router.get("/me/attempt-history", response_model=list[MyAttemptHistoryDayResponse])
+def read_my_attempt_history(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[MyAttemptHistoryDayResponse]:
+    attempts = get_recent_attempt_history(db, user)
+    grouped: dict[str, list[Attempt]] = {}
+    for attempt in attempts:
+        date_key = attempt.attempted_at.strftime("%Y.%m.%d")
+        grouped.setdefault(date_key, []).append(attempt)
+
+    return [
+        MyAttemptHistoryDayResponse(
+            date=date_key,
+            attempts=[
+                MyAttemptHistoryItemResponse(
+                    id=attempt.id,
+                    problem_id=attempt.problem_id,
+                    title=f"{attempt.problem.exam.year}학년도 {AREA_LABELS[attempt.problem.area.value]} {attempt.problem.number}번",
+                    area=attempt.problem.area.value,
+                    selected_index=attempt.selected_index,
+                    is_correct=attempt.is_correct,
+                    is_daily=attempt.is_daily,
+                    attempted_at=attempt.attempted_at.isoformat(),
+                )
+                for attempt in day_attempts
+            ],
+        )
+        for date_key, day_attempts in grouped.items()
+    ]
+
+
+@router.delete("/me/problems/{problem_id}/activity")
+def delete_my_problem_activity(
+    problem_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, bool]:
+    try:
+        delete_user_problem_activity(db, user, problem_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    return {"ok": True}
+
+
+@router.get("/me/weekly-summary", response_model=WeeklySummaryResponse)
+def read_my_weekly_summary(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> WeeklySummaryResponse:
+    today = date.today()
+    weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
+
+    return WeeklySummaryResponse(
+        week_start=weekly_summary.week_start.isoformat(),
+        week_end=weekly_summary.week_end.isoformat(),
+        total_attempts=weekly_summary.total_attempts,
+        correct_attempts=weekly_summary.correct_attempts,
+        accuracy_rate=weekly_summary.accuracy_rate,
+        daily_attempts=weekly_summary.daily_attempts,
+        practice_attempts=weekly_summary.practice_attempts,
+        average_solve_duration_sec=weekly_summary.average_solve_duration_sec,
+        weak_type=weekly_summary.weak_type,
+        area_accuracy=[AreaAccuracyResponse(**item) for item in weekly_summary.area_accuracy],
+        summary_text=weekly_summary.summary_text,
+    )
+
+
+@router.get("/me/notion-connection", response_model=NotionConnectionResponse)
+def read_my_notion_connection(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> NotionConnectionResponse:
+    connection = get_user_notion_connection(db, user)
+    if connection is None:
+        return NotionConnectionResponse(connected=False)
+
+    return NotionConnectionResponse(
+        connected=True,
+        workspace_id=connection.workspace_id,
+        workspace_name=connection.workspace_name,
+        workspace_icon=connection.workspace_icon,
+        default_page_id=connection.default_page_id,
+    )
+
+
+@router.post("/me/weekly-summary/notion", response_model=WeeklySummaryNotionResponse)
+def save_my_weekly_summary_to_notion(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> WeeklySummaryNotionResponse:
+    today = date.today()
+    weekly_summary = summarize_weekly_attempts(get_weekly_attempts(db, user, today), today)
+
+    try:
+        result = save_weekly_summary_to_user_notion_once(db, user, weekly_summary)
+    except NotionConnectionRequiredError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except NotionAPIError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return WeeklySummaryNotionResponse(
+        page_id=result.page_id,
+        url=result.url,
+        already_saved=result.already_saved,
+        message="이미 저장된 이번 주 요약이에요." if result.already_saved else "이번 주 요약을 Notion에 저장했어요.",
+    )
+
+
+@router.get("/stats/me", response_model=MyStatsResponse)
+def read_my_stats(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MyStatsResponse:
+    attempts = get_my_attempts(db, user)
+    total_attempts = len(attempts)
+    correct_attempts = sum(1 for attempt in attempts if attempt.is_correct)
+
+    return MyStatsResponse(
+        user_id=user.id,
+        nickname=user.nickname,
+        created_at=user.created_at.isoformat(),
+        current_streak=user.current_streak,
+        longest_streak=user.longest_streak,
+        total_attempts=total_attempts,
+        correct_attempts=correct_attempts,
+        accuracy_rate=calculate_accuracy(correct_attempts, total_attempts),
+        area_accuracy=[AreaAccuracyResponse(**item) for item in summarize_area_accuracy(attempts)],
+    )
